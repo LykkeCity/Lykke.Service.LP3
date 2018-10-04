@@ -1,0 +1,63 @@
+LP3Service:
+  WalletId:
+    settings-key: LP3-WalletId
+  
+  Db:
+    LogsConnString:
+      settings-key: LP3-LogsConnString
+      types:
+        - AzureTableStorage
+
+    DataConnectionString:
+      settings-key: LP3-DataConnectionString
+      types:
+        - AzureTableStorage
+        
+  Rabbit:
+    Subscribers:
+      LykkeOrders:
+        ConnectionString:
+          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-ConnectionString
+          types:
+          - RabbitMq
+        Exchange:
+          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-Exchange
+        Queue: LP3
+
+      LykkeOrderBooks:
+        ConnectionString:
+          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-ConnectionString
+          types:
+          - RabbitMq
+        Exchange:
+          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-Exchange
+        Queue: LP3
+
+MatchingEngineClient:
+  IpEndpoint:
+    Port:
+      settings-key: MatchingEngine-Port
+    Host:
+      settings-key: MatchingEngine-Host
+
+AssetsServiceClient:
+  ServiceUrl:
+    settings-key: AssetsServiceUrl
+
+BalancesServiceClient:
+  ServiceUrl:
+    settings-key: BalancesServiceUrl
+
+SlackNotifications:
+  AzureQueue:
+    ConnectionString:
+      settings-key: SlackNotificationsConnString
+      types:
+        - AzureTableStorage
+    QueueName:
+      settings-key: SlackQueueName
+
+MonitoringServiceClient:
+  MonitoringServiceUrl:
+      settings-key: MonitoringServiceUrl
+

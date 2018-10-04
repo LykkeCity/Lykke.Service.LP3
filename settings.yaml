@@ -20,18 +20,16 @@ LP3Service:
           settings-key: LP3-Rabbit-Subscribers-LykkeOrders-ConnectionString
           types:
           - RabbitMq
-        Exchange:
+        ExchangeName:
           settings-key: LP3-Rabbit-Subscribers-LykkeOrders-Exchange
-        Queue: LP3
 
       LykkeOrderBooks:
         ConnectionString:
-          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-ConnectionString
+          settings-key: LP3-Rabbit-Subscribers-LykkeOrderBooks-ConnectionString
           types:
           - RabbitMq
-        Exchange:
-          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-Exchange
-        Queue: LP3
+        ExchangeName:
+          settings-key: LP3-Rabbit-Subscribers-LykkeOrderBooks-Exchange
 
 MatchingEngineClient:
   IpEndpoint:

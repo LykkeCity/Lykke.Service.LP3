@@ -9,6 +9,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
         {
             CreateMap<LevelSettingsEntity, LevelSettings>(MemberList.Destination);
             CreateMap<LevelSettings, LevelSettingsEntity>(MemberList.Source);
+            
+            CreateMap<BaseAssetPairSettingsEntity, BaseAssetPairSettings>(MemberList.Destination);
+            CreateMap<BaseAssetPairSettings, BaseAssetPairSettingsEntity>(MemberList.Source);
         }
     }
 }

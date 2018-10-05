@@ -1,23 +1,28 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Common;
+using Common.Log;
+using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
 
 namespace Lykke.Service.LP3.DomainServices
 {
-    public class Trader : ITrader
+    public class TradingAlgorithm : ITradingAlgorithm
     {
         private readonly ISettingsService _settingsService;
         private List<Level> _levels = new List<Level>();
         
         private decimal _inventory = 0;
         private decimal _oppositeInventory = 0;
-        
-        public Trader(ISettingsService settingsService)
+        private readonly ILog _log;
+
+        public TradingAlgorithm(ILogFactory logFactory,
+            ISettingsService settingsService)
         {
+            _log = logFactory.CreateLog(this);
             _settingsService = settingsService;
         }
 
@@ -31,8 +36,10 @@ namespace Lykke.Service.LP3.DomainServices
             return _levels.SelectMany(x => x.GetOrders());
         }
 
-        public async Task HandleTradeAsync(Trade trade)
+        public void HandleTrade(Trade trade)
         {
+            _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");
+            
             var volume = trade.Volume;
 
             if (trade.Type == TradeType.Sell)
@@ -76,6 +83,8 @@ namespace Lykke.Service.LP3.DomainServices
 
                     volume = 0;
                 }
+                
+                _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
 
                 return volume;
             }
@@ -106,6 +115,9 @@ namespace Lykke.Service.LP3.DomainServices
                     level.OppositeInventory -= volume * level.Buy;
                     volume = 0;
                 }
+                
+                _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
+                
                 return volume;
             }
 

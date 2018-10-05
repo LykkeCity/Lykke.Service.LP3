@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.Service.LP3.Domain.Repositories;
@@ -11,14 +10,17 @@ namespace Lykke.Service.LP3.DomainServices
     {
         private readonly string _walletId;
         private readonly ILevelsSettingsRepository _levelsSettingsRepository;
+        private readonly IBaseAssetPairSettingsRepository _baseAssetPairSettingsRepository;
 
         // TODO: settingsCache
 
         public SettingsService(string walletId,
-            ILevelsSettingsRepository levelsSettingsRepository)
+            ILevelsSettingsRepository levelsSettingsRepository,
+            IBaseAssetPairSettingsRepository baseAssetPairSettingsRepository)
         {
             _walletId = walletId;
             _levelsSettingsRepository = levelsSettingsRepository;
+            _baseAssetPairSettingsRepository = baseAssetPairSettingsRepository;
         }
 
         public Task<string> GetWalletIdAsync()
@@ -26,9 +28,9 @@ namespace Lykke.Service.LP3.DomainServices
             return Task.FromResult(_walletId);
         }
 
-        public Task<string> GetBaseAssetPairId()
+        public Task<BaseAssetPairSettings> GetBaseAssetPairSettings()
         {
-            throw new NotImplementedException();
+            return _baseAssetPairSettingsRepository.GetAsync();
         }
 
         public Task AddAsync(LevelSettings levelSettings)

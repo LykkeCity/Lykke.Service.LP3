@@ -4,11 +4,10 @@ using Lykke.Service.LP3.Domain.Orders;
 
 namespace Lykke.Service.LP3.Domain.Services
 {
-    public interface ITrader
+    public interface ITradingAlgorithm
     {
         Task StartAsync(decimal startMid);
-        
-        Task HandleTradeAsync(Trade trade);
+        void HandleTrade(Trade trade);
         IEnumerable<LimitOrder> GetOrders();
     }
 }

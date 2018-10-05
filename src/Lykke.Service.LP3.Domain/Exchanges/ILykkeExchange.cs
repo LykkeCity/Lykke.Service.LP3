@@ -6,6 +6,6 @@ namespace Lykke.Service.LP3.Domain.Exchanges
 {
     public interface ILykkeExchange
     {
-        Task ApplyAsync(Instrument instrument, IReadOnlyList<LimitOrder> limitOrders);
+        Task ApplyAsync(string assetPairId, IReadOnlyList<LimitOrder> limitOrders);
     }
 }

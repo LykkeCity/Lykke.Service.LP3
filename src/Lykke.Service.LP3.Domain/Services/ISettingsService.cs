@@ -10,7 +10,7 @@ namespace Lykke.Service.LP3.Domain.Services
 
         Task<IReadOnlyList<LevelSettings>> GetLevelSettingsAsync();
 
-        Task<string> GetBaseAssetPairId();
+        Task<BaseAssetPairSettings> GetBaseAssetPairSettings();
         
         Task AddAsync(LevelSettings levelSettings);
         

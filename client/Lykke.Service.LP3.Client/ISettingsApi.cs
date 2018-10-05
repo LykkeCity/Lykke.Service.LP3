@@ -7,16 +7,19 @@ namespace Lykke.Service.LP3.Client
 {
     public interface ISettingsApi
     {
-        [Get("levels")]
+        [Get("/api/settings/baseAssetPair")]
+        Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync();
+        
+        [Get("/api/settings/levels")]
         Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync();
 
-        [Post("levels")]
+        [Post("/api/settings/levels")]
         Task AddAsync(LevelSettingsModel model);
 
-        [Delete("levels/{name}")]
+        [Delete("/api/settings/levels/{name}")]
         Task DeleteAsync(string name);
 
-        [Put("levels")]
+        [Put("/api/settings/levels")]
         Task UpdateAsync(LevelSettingsModel model);
     }
 }

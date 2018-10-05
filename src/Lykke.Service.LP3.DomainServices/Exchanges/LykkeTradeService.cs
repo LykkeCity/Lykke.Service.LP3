@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Common;
 using Common.Log;
 using JetBrains.Annotations;
 using Lykke.Common.Log;
@@ -19,25 +19,21 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
     public class LykkeTradeService : ILykkeTradeService
     {
         private readonly ISettingsService _settingsService;
-        private readonly ITrader _trader;
-        private readonly ILogFactory _logFactory;
+        private readonly ILp3Service _lp3Service;
         private readonly ILog _log;
 
         public LykkeTradeService(
             ISettingsService settingsService,
-            ITrader trader,
+            ILp3Service lp3Service,
             ILogFactory logFactory)
         {
             _settingsService = settingsService;
-            _trader = trader;
-            _logFactory = logFactory;
+            _lp3Service = lp3Service;
             _log = logFactory.CreateLog(this);
         }
 
         public async Task HandleAsync(LimitOrders limitOrders)
         {
-            var sw = new Stopwatch();
-
             try
             {
                 if (limitOrders.Orders == null || limitOrders.Orders.Count == 0)
@@ -51,63 +47,61 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 IEnumerable<LimitOrderWithTrades> clientLimitOrders = limitOrders.Orders
                     .Where(o => o.Order?.ClientId == walletId)
                     .Where(o => o.Trades?.Count > 0);
+                
+                _log.Info("LimitOrders received", context: $"{limitOrders.ToJson()}");
 
-                IReadOnlyList<Trade> trades = CreateReports(clientLimitOrders);
+                IReadOnlyList<Trade> trades = ExtractTrades(clientLimitOrders);
 
-                foreach (Trade trade in trades)
+                if (trades.Any())
                 {
-                    await _trader.HandleTradeAsync(trade);
+                    await _lp3Service.HandleTradesAsync(trades);
                 }
             }
             catch (Exception exception)
             {
                 _log.Error(exception, "An error occurred during processing trades", limitOrders);
             }
-            finally
-            {
-                sw.Stop();
-            }
         }
 
-        private static IReadOnlyList<Trade> CreateReports(IEnumerable<LimitOrderWithTrades> limitOrders)
+        private static IReadOnlyList<Trade> ExtractTrades(IEnumerable<LimitOrderWithTrades> limitOrders)
         {
-            var executionReports = new List<Trade>();
+            var resultListOfTrades = new List<Trade>();
 
             foreach (LimitOrderWithTrades limitOrderModel in limitOrders)
             {
                 // The limit order fully executed. The remaining volume is zero.
                 if (limitOrderModel.Order.Status == OrderStatus.Matched.ToString())
                 {
-                    IReadOnlyList<Trade> orderExecutionReports =
-                        CreateFillReports(limitOrderModel.Order, limitOrderModel.Trades, true);
+                    IReadOnlyList<Trade> tradesFromOrder =
+                        CreateTradesFromOrder(limitOrderModel.Order, limitOrderModel.Trades, true);
 
-                    executionReports.AddRange(orderExecutionReports);
+                    resultListOfTrades.AddRange(tradesFromOrder);
                 }
 
                 // The limit order partially executed.
                 if (limitOrderModel.Order.Status == "Processing")
                 {
-                    IReadOnlyList<Trade> orderExecutionReports =
-                        CreateFillReports(limitOrderModel.Order, limitOrderModel.Trades, false);
+                    IReadOnlyList<Trade> tradesFromOrder =
+                        CreateTradesFromOrder(limitOrderModel.Order, limitOrderModel.Trades, false);
 
-                    executionReports.AddRange(orderExecutionReports);
+                    resultListOfTrades.AddRange(tradesFromOrder);
                 }
 
                 // The limit order was cancelled by matching engine after processing trades.
                 // In this case order partially executed and remaining volume is less than min volume allowed by asset pair.
                 if (limitOrderModel.Order.Status == OrderStatus.Cancelled.ToString())
                 {
-                    IReadOnlyList<Trade> orderExecutionReports =
-                        CreateFillReports(limitOrderModel.Order, limitOrderModel.Trades, true);
+                    IReadOnlyList<Trade> tradesFromOrder =
+                        CreateTradesFromOrder(limitOrderModel.Order, limitOrderModel.Trades, true);
 
-                    executionReports.AddRange(orderExecutionReports);
+                    resultListOfTrades.AddRange(tradesFromOrder);
                 }
             }
 
-            return executionReports;
+            return resultListOfTrades;
         }
 
-        private static IReadOnlyList<Trade> CreateFillReports(LimitOrder limitOrder,
+        private static IReadOnlyList<Trade> CreateTradesFromOrder(LimitOrder limitOrder,
             IReadOnlyList<LimitTradeInfo> trades, bool completed)
         {
             var reports = new List<Trade>();

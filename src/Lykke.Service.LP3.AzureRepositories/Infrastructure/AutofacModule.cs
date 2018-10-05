@@ -24,6 +24,18 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
                         settingsTableName, container.Resolve<ILogFactory>())))
                 .As<ILevelsSettingsRepository>()
                 .SingleInstance();
+            
+            builder.Register(container => new InitialPriceRepository(
+                    AzureTableStorage<InitialPriceEntity>.Create(_connectionString,
+                        settingsTableName, container.Resolve<ILogFactory>())))
+                .As<IInitialPriceRepository>()
+                .SingleInstance();
+            
+            builder.Register(container => new BaseAssetPairSettingsRepository(
+                    AzureTableStorage<BaseAssetPairSettingsEntity>.Create(_connectionString,
+                        settingsTableName, container.Resolve<ILogFactory>())))
+                .As<IBaseAssetPairSettingsRepository>()
+                .SingleInstance();
         }
     }
 }

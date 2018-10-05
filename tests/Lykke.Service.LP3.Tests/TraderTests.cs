@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Lykke.Logs;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
@@ -11,7 +12,7 @@ namespace Lykke.Service.LP3.Tests
 {
     public class TraderTests
     {
-        private Trader CreateTrader()
+        private TradingAlgorithm CreateTrader()
         {
             var settingsServiceMock = new Mock<ISettingsService>();
             settingsServiceMock.Setup(x => x.GetLevelSettingsAsync())
@@ -23,7 +24,7 @@ namespace Lykke.Service.LP3.Tests
                     new LevelSettings("4", 10, 0.008m)
                 });
             
-            return new Trader(settingsServiceMock.Object);
+            return new TradingAlgorithm(EmptyLogFactory.Instance, settingsServiceMock.Object);
         }
         
         [Fact]
@@ -58,7 +59,7 @@ namespace Lykke.Service.LP3.Tests
 
             await trader.StartAsync(startMid: 1000m);
 
-            await trader.HandleTradeAsync(new Trade
+            trader.HandleTrade(new Trade
             {
                 Type = TradeType.Buy,
                 Volume = 10
@@ -89,7 +90,7 @@ namespace Lykke.Service.LP3.Tests
 
             await trader.StartAsync(startMid: 1000m);
 
-            await trader.HandleTradeAsync(new Trade
+            trader.HandleTrade(new Trade
             {
                 Type = TradeType.Buy,
                 Volume = 20
@@ -120,7 +121,7 @@ namespace Lykke.Service.LP3.Tests
 
             await trader.StartAsync(startMid: 1000m);
 
-            await trader.HandleTradeAsync(new Trade
+            trader.HandleTrade(new Trade
             {
                 Type = TradeType.Buy,
                 Volume = 30

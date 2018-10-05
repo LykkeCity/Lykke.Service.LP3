@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.Service.LP3.Domain.Repositories;
@@ -12,6 +13,8 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly ILevelsSettingsRepository _levelsSettingsRepository;
         private readonly IBaseAssetPairSettingsRepository _baseAssetPairSettingsRepository;
 
+        public event Action<SettingsChangedEventArgs> SettingsChanged;
+        
         // TODO: settingsCache
 
         public SettingsService(string walletId,
@@ -23,6 +26,7 @@ namespace Lykke.Service.LP3.DomainServices
             _baseAssetPairSettingsRepository = baseAssetPairSettingsRepository;
         }
 
+
         public Task<string> GetWalletIdAsync()
         {
             return Task.FromResult(_walletId);
@@ -33,19 +37,31 @@ namespace Lykke.Service.LP3.DomainServices
             return _baseAssetPairSettingsRepository.GetAsync();
         }
 
-        public Task AddAsync(LevelSettings levelSettings)
+        public async Task AddAsync(LevelSettings levelSettings)
         {
-            return _levelsSettingsRepository.AddAsync(levelSettings);
+            await _levelsSettingsRepository.AddAsync(levelSettings);
+            SettingsChanged?.Invoke(new SettingsChangedEventArgs
+            {
+                AddedLevel = levelSettings
+            });
         }
 
-        public Task DeleteAsync(string name)
+        public async Task DeleteAsync(string name)
         {
-            return _levelsSettingsRepository.DeleteAsync(name);
+            await _levelsSettingsRepository.DeleteAsync(name);
+            SettingsChanged?.Invoke(new SettingsChangedEventArgs
+            {
+                NameOfDeletedLevel = name
+            });
         }
 
-        public Task UpdateAsync(LevelSettings levelSettings)
+        public async Task UpdateAsync(LevelSettings levelSettings)
         {
-            return _levelsSettingsRepository.UpdateAsync(levelSettings);
+            await _levelsSettingsRepository.UpdateAsync(levelSettings);
+            SettingsChanged?.Invoke(new SettingsChangedEventArgs
+            {
+                ChangedLevel = levelSettings
+            });
         }
 
         public Task<IReadOnlyList<LevelSettings>> GetLevelSettingsAsync()

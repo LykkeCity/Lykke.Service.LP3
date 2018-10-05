@@ -7,21 +7,20 @@ namespace Lykke.Service.LP3.Domain
 {
     public class Level
     {
-        public Level(LevelSettings levelSettings, decimal startMid)
+        public Level(LevelSettings levelSettings)
         {
             VolumeSell = -levelSettings.Volume;
             VolumeBuy = levelSettings.Volume;
             OriginalVolume = levelSettings.Volume;
             Delta = levelSettings.Delta;
-            Reference = startMid;
             Name = levelSettings.Name;
         }
 
         public decimal VolumeSell { get; set; }
         public decimal VolumeBuy { get; set; }
-        public decimal Delta { get; }
-        public decimal Reference { get; set; }
-        public decimal OriginalVolume { get; }
+        public decimal Delta { get; private set; }
+        public decimal Reference { get; private set; }
+        public decimal OriginalVolume { get; private set; }
         public string Name { get; }
 
         public decimal Inventory { get; set; }
@@ -37,6 +36,19 @@ namespace Lykke.Service.LP3.Domain
                 new LimitOrder(Sell, Math.Abs(VolumeSell), TradeType.Sell), 
                 new LimitOrder(Buy, VolumeBuy, TradeType.Buy), 
             };
+        }
+
+        public void UpdateReference(decimal price)
+        {
+            Reference = price;
+        }
+        
+        public void UpdateSettings(LevelSettings levelSettings)
+        {
+            Delta = levelSettings.Delta;
+            VolumeSell = -levelSettings.Volume;
+            VolumeBuy = levelSettings.Volume;
+            OriginalVolume = levelSettings.Volume;
         }
     }
 }

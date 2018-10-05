@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
+using Lykke.Service.LP3.Domain.Settings;
 
 namespace Lykke.Service.LP3.DomainServices
 {
@@ -18,17 +20,26 @@ namespace Lykke.Service.LP3.DomainServices
         private decimal _inventory = 0;
         private decimal _oppositeInventory = 0;
         private readonly ILog _log;
+        private decimal _lastPrice;
 
         public TradingAlgorithm(ILogFactory logFactory,
             ISettingsService settingsService)
         {
-            _log = logFactory.CreateLog(this);
             _settingsService = settingsService;
+            _log = logFactory.CreateLog(this);
+
+            _settingsService.SettingsChanged += OnSettingsChanged;
         }
 
         public async Task StartAsync(decimal startMid)
         {
-            _levels = (await _settingsService.GetLevelSettingsAsync()).Select(x => new Level(x, startMid)).ToList();
+            _lastPrice = startMid;
+            _levels = (await _settingsService.GetLevelSettingsAsync()).Select(x => new Level(x)).ToList();
+
+            foreach (var level in _levels)
+            {
+                level.UpdateReference(startMid);
+            }
         }
         
         public IEnumerable<LimitOrder> GetOrders()
@@ -39,7 +50,8 @@ namespace Lykke.Service.LP3.DomainServices
         public void HandleTrade(Trade trade)
         {
             _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");
-            
+
+            _lastPrice = trade.Price;
             var volume = trade.Volume;
 
             if (trade.Type == TradeType.Sell)
@@ -69,7 +81,7 @@ namespace Lykke.Service.LP3.DomainServices
                     level.Inventory += level.VolumeSell;
                     level.OppositeInventory -= level.VolumeSell * level.Sell;
 
-                    level.Reference = level.Sell;
+                    level.UpdateReference(level.Sell);
                     level.VolumeSell = -level.OriginalVolume;
                 }
                 else
@@ -103,7 +115,7 @@ namespace Lykke.Service.LP3.DomainServices
                     level.Inventory += level.VolumeBuy;
                     level.OppositeInventory -= level.VolumeBuy * level.Buy;
 
-                    level.Reference = level.Buy;
+                    level.UpdateReference(level.Buy);
                     level.VolumeBuy = level.OriginalVolume;
                 }
                 else
@@ -122,6 +134,32 @@ namespace Lykke.Service.LP3.DomainServices
             }
 
             return 0;
+        }
+
+        private void OnSettingsChanged(SettingsChangedEventArgs eventArgs)
+        {
+            if (eventArgs.AddedLevel != null)
+            {
+                var level = new Level(eventArgs.AddedLevel);
+                level.UpdateReference(_lastPrice);
+                _levels.Add(level);
+            }
+
+            if (eventArgs.NameOfDeletedLevel != null)
+            {
+                var level = _levels.SingleOrDefault(x =>
+                    string.Equals(x.Name, eventArgs.NameOfDeletedLevel, StringComparison.InvariantCultureIgnoreCase));
+
+                _levels.Remove(level);
+            }
+
+            if (eventArgs.ChangedLevel != null)
+            {
+                var level = _levels.SingleOrDefault(x =>
+                    string.Equals(x.Name, eventArgs.ChangedLevel.Name, StringComparison.InvariantCultureIgnoreCase));
+                
+                level?.UpdateSettings(eventArgs.ChangedLevel);
+            }
         }
     }
 }

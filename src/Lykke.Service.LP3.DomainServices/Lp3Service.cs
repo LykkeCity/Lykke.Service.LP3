@@ -24,6 +24,7 @@ namespace Lykke.Service.LP3.DomainServices
         private string _baseAssetPairId;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+        private bool _started;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
@@ -41,37 +42,54 @@ namespace Lykke.Service.LP3.DomainServices
 
         public void Start()
         {
-            StartAsync().GetAwaiter().GetResult();;
+            SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();;
         }
 
         private async Task StartAsync()
         {
-            await SynchronizeAsync(async () =>
+            var initialPrice = await _initialPriceService.GetAsync();
+            if (initialPrice == null)
             {
-                var initialPrice = await _initialPriceService.GetAsync();
-                if (initialPrice == null)
-                {
-                    _log.Info("No initial price to start algorithm, waiting for adding one via API");
-                    return;
-                }
-            
-                _baseAssetPairId = (await _settingsService.GetBaseAssetPairSettings())?.AssetPairId;
+                _log.Info("No initial price to start algorithm, waiting for adding one via API");
+                return;
+            }
+        
+            _baseAssetPairId = (await _settingsService.GetBaseAssetPairSettings())?.AssetPairId;
 
-                await _tradingAlgorithm.StartAsync(initialPrice.Price);
-                await ApplyOrdersAsync();    
-            });
+            await _tradingAlgorithm.StartAsync(initialPrice.Price);
+
+            _started = true;
+            
+            await ApplyOrdersAsync();
         }
 
         public async Task HandleTradesAsync(IReadOnlyList<Trade> trades)
         {
             await SynchronizeAsync(async () =>
             {
+                await _initialPriceService.AddOrUpdateAsync(trades.Last().Price);
+                
                 foreach (var trade in trades)
                 {
                     _tradingAlgorithm.HandleTrade(trade); // TODO: pass all trades at once?
                 }
 
                 await ApplyOrdersAsync();
+            });
+        }
+
+        public async Task HandleTimerAsync()
+        {
+            await SynchronizeAsync(async () =>
+            {
+                if (!_started)
+                {
+                    await StartAsync();
+                }
+                else
+                {
+                    await ApplyOrdersAsync();
+                }
             });
         }
 

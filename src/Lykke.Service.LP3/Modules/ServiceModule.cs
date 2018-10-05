@@ -1,9 +1,11 @@
 ﻿using System.Net;
 using Autofac;
+using Common;
 using Lykke.Sdk;
 using Lykke.Service.Assets.Client;
 using Lykke.Service.Balances.Client;
 using Lykke.Service.LP3.AzureRepositories.Infrastructure;
+using Lykke.Service.LP3.PeriodicalHandlers;
 using Lykke.Service.LP3.RabbitMq.Subscribers;
 using Lykke.Service.LP3.Services;
 using Lykke.Service.LP3.Settings;
@@ -40,6 +42,8 @@ namespace Lykke.Service.LP3.Modules
             RegisterClients(builder);
             
             RegisterRabbitMqSubscribers(builder);
+            
+            RegisterPeriodicalHandlers(builder);
         }
         
         private void RegisterClients(ContainerBuilder builder)
@@ -78,6 +82,16 @@ namespace Lykke.Service.LP3.Modules
                 .SingleInstance()
                 .WithParameter("connectionString", _appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrderBooks.ConnectionString)
                 .WithParameter("exchangeName", _appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrderBooks.ExchangeName);
+        }
+        
+        private void RegisterPeriodicalHandlers(ContainerBuilder builder)
+        {
+            // TODO: You should register each periodical handler in DI container as IStartable singleton and autoactivate it
+
+            builder.RegisterType<RecreateOrdersPeriodicalHandler>()
+                .As<IStartable>()
+                .As<IStopable>()
+                .SingleInstance();
         }
     }
 }

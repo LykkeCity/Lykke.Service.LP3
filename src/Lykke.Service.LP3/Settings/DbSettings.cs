@@ -6,5 +6,8 @@ namespace Lykke.Service.LP3.Settings
     {
         [AzureTableCheck]
         public string LogsConnString { get; set; }
+        
+        [AzureTableCheck]
+        public string DataConnectionString { get; set; }
     }
 }

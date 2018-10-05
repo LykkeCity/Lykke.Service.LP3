@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using Autofac;
 using Lykke.Sdk;
 using Lykke.Service.Assets.Client;
 using Lykke.Service.Balances.Client;
+using Lykke.Service.LP3.AzureRepositories.Infrastructure;
 using Lykke.Service.LP3.RabbitMq.Subscribers;
 using Lykke.Service.LP3.Services;
 using Lykke.Service.LP3.Settings;
@@ -23,8 +23,10 @@ namespace Lykke.Service.LP3.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(new DomainServices.AutofacModule(
-                _appSettings.CurrentValue.LP3Service.WalletId));
+            builder.RegisterModule(new DomainServices.AutofacModule(_appSettings.CurrentValue.LP3Service.WalletId));
+
+            builder.RegisterModule(new AutofacModule(_appSettings.Nested(x => x.LP3Service.Db.DataConnectionString)));
+            
             
             builder.RegisterType<StartupManager>()
                 .As<IStartupManager>()

@@ -1,10 +1,15 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
+using Lykke.Common.Api.Contract.Responses;
+using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.Settings;
 using Lykke.Service.LP3.Domain.Services;
+using Lykke.Service.LP3.Domain.Settings;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Lykke.Service.LP3.Controllers
@@ -19,7 +24,6 @@ namespace Lykke.Service.LP3.Controllers
             _settingsService = settingsService;
         }
         
-        /// <response code="200">Levels settings.</response>
         [HttpGet("levels")]
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
         public async Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
@@ -30,35 +34,46 @@ namespace Lykke.Service.LP3.Controllers
 
             return model;
         }
-//        
-//        /// <response code="204">A level settings successfully added.</response>
-//        [HttpPost]
-//        //[SwaggerOperation("LevelSettingsSave")]
-//        [ProducesResponseType((int)HttpStatusCode.NoContent)]
-//        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
-//        public async Task AddAsync([FromBody] AssetHedgeSettingsModel model, string clientId)
-//        {
-//            if (string.IsNullOrEmpty(clientId))
-//            {
-//                throw new ValidationApiException($"{nameof(clientId)} required");
-//            }
-//
-//            var exchange = (await _settingsService.GetExternalExchangesAsync())
-//                .FirstOrDefault(e => e.HasApi && string.Equals(e.Name, model.Exchange, StringComparison.InvariantCultureIgnoreCase));
-//            if (exchange == null)
-//            {
-//                throw new ValidationApiException("Hedging is not allowed for the specified exchange");
-//            }
-//
-//            AssetHedgeSettings existingAssetSettings = (await _assetHedgeSettingsService.GetAsync(model.Asset));
-//            if (existingAssetSettings != null)
-//            {
-//                throw new ValidationApiException("Hedging settings already exist for the specified asset");
-//            }
-//
-//            var assetHedgeSettings = Mapper.Map<AssetHedgeSettings>(model);
-//
-//            await _assetHedgeSettingsService.AddAsync(assetHedgeSettings, clientId);
-//        }
+        
+        [HttpPost("levels")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task AddAsync([FromBody] LevelSettingsModel model)
+        {
+            var levelsSettings = await _settingsService.GetLevelSettingsAsync();
+            if (levelsSettings.Any(x => string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"A level with name {model.Name} already exist");
+            }
+
+            var levelSettings = Mapper.Map<LevelSettings>(model);
+
+            await _settingsService.AddAsync(levelSettings);
+        }
+
+        [HttpDelete("levels/{name}")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task DeleteAsync(string name)
+        {
+            await _settingsService.DeleteAsync(name);
+        }
+        
+        
+        [HttpPut("levels")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task UpdateAsync([FromBody] LevelSettingsModel model)
+        {
+            var levelsSettings = await _settingsService.GetLevelSettingsAsync();
+            if (levelsSettings.All(x => !string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"A level with name {model.Name} doesn't exist");
+            }
+
+            var levelSettings = Mapper.Map<LevelSettings>(model);
+
+            await _settingsService.UpdateAsync(levelSettings);
+        }
     }
 }

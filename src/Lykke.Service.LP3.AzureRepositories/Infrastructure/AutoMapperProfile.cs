@@ -8,6 +8,7 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
         public AutoMapperProfile()
         {
             CreateMap<LevelSettingsEntity, LevelSettings>(MemberList.Destination);
+            CreateMap<LevelSettings, LevelSettingsEntity>(MemberList.Source);
         }
     }
 }

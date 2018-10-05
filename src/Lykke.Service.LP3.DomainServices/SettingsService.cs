@@ -10,15 +10,15 @@ namespace Lykke.Service.LP3.DomainServices
     public class SettingsService : ISettingsService
     {
         private readonly string _walletId;
-        private readonly ISettingsRepository _settingsRepository;
+        private readonly ILevelsSettingsRepository _levelsSettingsRepository;
 
-        // settingsCache
+        // TODO: settingsCache
 
         public SettingsService(string walletId,
-            ISettingsRepository settingsRepository)
+            ILevelsSettingsRepository levelsSettingsRepository)
         {
             _walletId = walletId;
-            _settingsRepository = settingsRepository;
+            _levelsSettingsRepository = levelsSettingsRepository;
         }
 
         public Task<string> GetWalletIdAsync()
@@ -31,9 +31,24 @@ namespace Lykke.Service.LP3.DomainServices
             throw new NotImplementedException();
         }
 
+        public Task AddAsync(LevelSettings levelSettings)
+        {
+            return _levelsSettingsRepository.AddAsync(levelSettings);
+        }
+
+        public Task DeleteAsync(string name)
+        {
+            return _levelsSettingsRepository.DeleteAsync(name);
+        }
+
+        public Task UpdateAsync(LevelSettings levelSettings)
+        {
+            return _levelsSettingsRepository.UpdateAsync(levelSettings);
+        }
+
         public Task<IReadOnlyList<LevelSettings>> GetLevelSettingsAsync()
         {
-            return _settingsRepository.GetLevelSettingsAsync();
+            return _levelsSettingsRepository.GetAsync();
         }
     }
 }

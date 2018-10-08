@@ -2,7 +2,7 @@ using System;
 
 namespace Lykke.Service.LP3.Domain.Settings
 {
-    public class SettingsChangedEventArgs : EventArgs
+    public class LevelsChangedEventArgs : EventArgs
     {
         public LevelSettings ChangedLevel { get; set; }
         

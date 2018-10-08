@@ -14,7 +14,7 @@ namespace Lykke.Service.LP3.DomainServices
 {
     public class TradingAlgorithm : ITradingAlgorithm
     {
-        private readonly ISettingsService _settingsService;
+        private readonly ILevelsService _levelsService;
         private List<Level> _levels = new List<Level>();
         
         private decimal _inventory = 0;
@@ -23,19 +23,18 @@ namespace Lykke.Service.LP3.DomainServices
         private decimal _lastPrice;
 
         public TradingAlgorithm(ILogFactory logFactory,
-            ISettingsService settingsService)
+            ILevelsService levelsService)
         {
-            _settingsService = settingsService;
+            _levelsService = levelsService;
             _log = logFactory.CreateLog(this);
 
-            _settingsService.SettingsChanged += OnSettingsChanged;
+            levelsService.SettingsChanged += OnSettingsChanged;
         }
 
         public async Task StartAsync(decimal startMid)
         {
-            _lastPrice = startMid;
-            _levels = (await _settingsService.GetLevelSettingsAsync()).Select(x => new Level(x)).ToList();
-
+            _levels = (await _levelsService.GetLevels()).ToList();
+            
             foreach (var level in _levels)
             {
                 level.UpdateReference(startMid);
@@ -68,6 +67,8 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 volume = HandleVolume(volume);
             }
+            
+            _levelsService.SaveStatesAsync(_levels).GetAwaiter().GetResult();
         }
         
         private decimal HandleVolume(decimal volume)
@@ -141,7 +142,7 @@ namespace Lykke.Service.LP3.DomainServices
             return 0;
         }
 
-        private void OnSettingsChanged(SettingsChangedEventArgs eventArgs)
+        private void OnSettingsChanged(LevelsChangedEventArgs eventArgs)
         {
             if (eventArgs.AddedLevel != null)
             {

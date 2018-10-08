@@ -19,10 +19,10 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
         {
             const string settingsTableName = "Settings";
             
-            builder.Register(container => new LevelsRepository(
-                    AzureTableStorage<LevelSettingsEntity>.Create(_connectionString,
+            builder.Register(container => new LevelRepository(
+                    AzureTableStorage<LevelEntity>.Create(_connectionString,
                         settingsTableName, container.Resolve<ILogFactory>())))
-                .As<ILevelsRepository>()
+                .As<ILevelRepository>()
                 .SingleInstance();
             
             builder.Register(container => new InitialPriceRepository(

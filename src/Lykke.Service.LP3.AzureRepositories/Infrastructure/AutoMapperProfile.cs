@@ -1,5 +1,6 @@
 using AutoMapper;
 using Lykke.Service.LP3.Domain.Settings;
+using Lykke.Service.LP3.Domain.States;
 
 namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
 {
@@ -7,8 +8,11 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
     {
         public AutoMapperProfile()
         {
-            CreateMap<LevelSettingsEntity, LevelSettings>(MemberList.Destination);
-            CreateMap<LevelSettings, LevelSettingsEntity>(MemberList.Source);
+            CreateMap<LevelEntity, LevelSettings>(MemberList.Destination);
+            CreateMap<LevelSettings, LevelEntity>(MemberList.Source);
+            
+            CreateMap<LevelEntity, LevelState>(MemberList.Destination);
+            CreateMap<LevelState, LevelEntity>(MemberList.Source);
             
             CreateMap<BaseAssetPairSettingsEntity, BaseAssetPairSettings>(MemberList.Destination);
             CreateMap<BaseAssetPairSettings, BaseAssetPairSettingsEntity>(MemberList.Source);

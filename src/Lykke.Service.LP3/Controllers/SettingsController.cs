@@ -18,10 +18,13 @@ namespace Lykke.Service.LP3.Controllers
     public class SettingsController : Controller, ISettingsApi
     {
         private readonly ISettingsService _settingsService;
+        private readonly ILevelsService _levelsService;
 
-        public SettingsController(ISettingsService settingsService)
+        public SettingsController(ISettingsService settingsService,
+            ILevelsService levelsService)
         {
             _settingsService = settingsService;
+            _levelsService = levelsService;
         }
         
         [HttpGet("baseAssetPair")]
@@ -39,7 +42,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
         public async Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
         {
-            var levelSettings = await _settingsService.GetLevelSettingsAsync();
+            var levelSettings = await _levelsService.GetLevelSettingsAsync();
             
             var model = Mapper.Map<IReadOnlyList<LevelSettingsModel>>(levelSettings);
 
@@ -51,7 +54,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task AddAsync([FromBody] LevelSettingsModel model)
         {
-            var levelsSettings = await _settingsService.GetLevelSettingsAsync();
+            var levelsSettings = await _levelsService.GetLevelSettingsAsync();
             if (levelsSettings.Any(x => string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 throw new ValidationApiException($"A level with name {model.Name} already exist");
@@ -59,7 +62,7 @@ namespace Lykke.Service.LP3.Controllers
 
             var levelSettings = Mapper.Map<LevelSettings>(model);
 
-            await _settingsService.AddAsync(levelSettings);
+            await _levelsService.AddAsync(levelSettings);
         }
 
         [HttpDelete("levels/{name}")]
@@ -67,7 +70,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task DeleteAsync(string name)
         {
-            await _settingsService.DeleteAsync(name);
+            await _levelsService.DeleteAsync(name);
         }
         
         
@@ -76,7 +79,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task UpdateAsync([FromBody] LevelSettingsModel model)
         {
-            var levelsSettings = await _settingsService.GetLevelSettingsAsync();
+            var levelsSettings = await _levelsService.GetLevelSettingsAsync();
             if (levelsSettings.All(x => !string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 throw new ValidationApiException($"A level with name {model.Name} doesn't exist");
@@ -84,7 +87,7 @@ namespace Lykke.Service.LP3.Controllers
 
             var levelSettings = Mapper.Map<LevelSettings>(model);
 
-            await _settingsService.UpdateAsync(levelSettings);
+            await _levelsService.UpdateAsync(levelSettings);
         }
     }
 }

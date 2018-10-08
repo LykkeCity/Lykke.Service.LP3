@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
+using Lykke.Service.LP3.Domain.States;
 
 namespace Lykke.Service.LP3.Domain
 {
@@ -9,11 +10,29 @@ namespace Lykke.Service.LP3.Domain
     {
         public Level(LevelSettings levelSettings)
         {
-            VolumeSell = -levelSettings.Volume;
-            VolumeBuy = levelSettings.Volume;
             OriginalVolume = levelSettings.Volume;
             Delta = levelSettings.Delta;
             Name = levelSettings.Name;
+            VolumeSell = -levelSettings.Volume;
+            VolumeBuy = levelSettings.Volume;
+        }
+
+        public Level(LevelSettings levelSettings, LevelState levelState)
+         : this(levelSettings)
+        {
+            if (levelState.VolumeBuy != 0)
+            {
+                VolumeBuy = levelState.VolumeBuy;
+            }
+
+            if (levelState.VolumeSell != 0)
+            {
+                VolumeSell = levelState.VolumeSell;
+            }
+            
+            //Reference = levelState.Reference;
+            Inventory = levelState.Inventory;
+            OppositeInventory = levelState.OppositeInventory;
         }
 
         public decimal VolumeSell { get; set; }

@@ -37,6 +37,10 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<IInitialPriceService>()
                 .SingleInstance();
 
+            builder.RegisterType<LevelsService>()
+                .As<ILevelsService>()
+                .SingleInstance();
+
             builder.RegisterType<Lp3Service>()
                 .As<ILp3Service>()
                 .As<IStartable>()

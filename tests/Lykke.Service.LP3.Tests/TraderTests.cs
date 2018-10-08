@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Logs;
+using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
@@ -14,17 +15,17 @@ namespace Lykke.Service.LP3.Tests
     {
         private TradingAlgorithm CreateTrader()
         {
-            var settingsServiceMock = new Mock<ISettingsService>();
-            settingsServiceMock.Setup(x => x.GetLevelSettingsAsync())
+            var levelsServiceMock = new Mock<ILevelsService>();
+            levelsServiceMock.Setup(x => x.GetLevels())
                 .ReturnsAsync(new[]
                 {
-                    new LevelSettings("1", 10, 0.001m),
-                    new LevelSettings("2", 10, 0.002m),
-                    new LevelSettings("3", 10, 0.004m),
-                    new LevelSettings("4", 10, 0.008m)
+                    new Level(new LevelSettings("1", 10, 0.001m)),
+                    new Level(new LevelSettings("2", 10, 0.002m)),
+                    new Level(new LevelSettings("3", 10, 0.004m)),
+                    new Level(new LevelSettings("4", 10, 0.008m))
                 });
             
-            return new TradingAlgorithm(EmptyLogFactory.Instance, settingsServiceMock.Object);
+            return new TradingAlgorithm(EmptyLogFactory.Instance, levelsServiceMock.Object);
         }
         
         [Fact]

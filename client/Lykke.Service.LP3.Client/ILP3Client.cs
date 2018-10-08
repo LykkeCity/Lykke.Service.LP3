@@ -13,5 +13,9 @@ namespace Lykke.Service.LP3.Client
         
         /// <summary>API for set and remove initial price for the algorithm</summary>
         IInitialPriceApi InitialPriceApi { get; }
+        
+        IOrdersApi OrdersApi { get; }
+        
+        ILevelsApi LevelsApi { get; }
     }
 }

@@ -7,6 +7,11 @@ namespace Lykke.Service.LP3.Domain.Services
     public interface ILp3Service
     {
         Task HandleTradesAsync(IReadOnlyList<Trade> trades);
+        
         Task HandleTimerAsync();
+
+        IReadOnlyList<LimitOrder> GetOrders();
+        
+        IReadOnlyList<Level> GetLevels();
     }
 }

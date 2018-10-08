@@ -47,6 +47,11 @@ namespace Lykke.Service.LP3.DomainServices
             return _levels.SelectMany(x => x.GetOrders());
         }
 
+        public IReadOnlyList<Level> GetLevels()
+        {
+            return _levels;
+        }
+
         public void HandleTrade(Trade trade)
         {
             _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");

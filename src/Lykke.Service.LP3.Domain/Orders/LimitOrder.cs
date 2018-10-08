@@ -1,4 +1,5 @@
 using System;
+using Common;
 
 namespace Lykke.Service.LP3.Domain.Orders
 {
@@ -23,6 +24,11 @@ namespace Lykke.Service.LP3.Domain.Orders
             Price = price;
             Volume = volume;
             TradeType = tradeType;
+        }
+
+        public override string ToString()
+        {
+            return this.ToJson();
         }
     }
 }

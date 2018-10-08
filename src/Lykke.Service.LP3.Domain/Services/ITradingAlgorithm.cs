@@ -9,5 +9,6 @@ namespace Lykke.Service.LP3.Domain.Services
         Task StartAsync(decimal startMid);
         void HandleTrade(Trade trade);
         IEnumerable<LimitOrder> GetOrders();
+        IReadOnlyList<Level> GetLevels();
     }
 }

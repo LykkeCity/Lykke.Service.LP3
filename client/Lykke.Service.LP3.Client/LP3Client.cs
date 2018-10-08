@@ -13,11 +13,17 @@ namespace Lykke.Service.LP3.Client
         /// <summary>API for set and remove initial price for the algorithm</summary>
         public IInitialPriceApi InitialPriceApi { get; }
 
+        public IOrdersApi OrdersApi { get; }
+        
+        public ILevelsApi LevelsApi { get; }
+        
         /// <summary>C-tor</summary>
         public LP3Client(IHttpClientGenerator httpClientGenerator)
         {
             SettingsApi = httpClientGenerator.Generate<ISettingsApi>();
             InitialPriceApi = httpClientGenerator.Generate<IInitialPriceApi>();
+            OrdersApi = httpClientGenerator.Generate<IOrdersApi>();
+            LevelsApi = httpClientGenerator.Generate<ILevelsApi>();
         }
     }
 }

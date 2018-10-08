@@ -26,6 +26,8 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private bool _started;
 
+        private List<LimitOrder> _orders = new List<LimitOrder>();
+
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
             ITradingAlgorithm tradingAlgorithm,
@@ -93,6 +95,16 @@ namespace Lykke.Service.LP3.DomainServices
             });
         }
 
+        public IReadOnlyList<LimitOrder> GetOrders()
+        {
+            return _orders;
+        }
+
+        public IReadOnlyList<Level> GetLevels()
+        {
+            return _tradingAlgorithm.GetLevels();
+        }
+
         private async Task SynchronizeAsync(Func<Task> asyncAction)
         {
             bool lockTaken = false;
@@ -121,7 +133,19 @@ namespace Lykke.Service.LP3.DomainServices
             try
             {
                 var orders = _tradingAlgorithm.GetOrders().ToList();
-                await _lykkeExchange.ApplyAsync(_baseAssetPairId, orders);
+
+                if (!orders.SequenceEqual(_orders))
+                {
+                    _orders = orders;
+                    
+                    _log.Info("New orders are going to be placed to the exchange", context: $"Orders: [{string.Join(", ", _orders)}]");
+                    
+                    await _lykkeExchange.ApplyAsync(_baseAssetPairId, _orders);
+                }
+                else
+                {
+                    _log.Info("New orders are the same as previously placed, don't replace");
+                }
             }
             catch (Exception e)
             {

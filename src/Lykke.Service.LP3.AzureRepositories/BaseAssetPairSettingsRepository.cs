@@ -24,12 +24,10 @@ namespace Lykke.Service.LP3.AzureRepositories
             return settings;
         }
 
-        public Task AddOrUpdateAsync(string baseAssetPairId)
+        public Task AddOrUpdateAsync(BaseAssetPairSettings settings)
         {
-            var entity = new BaseAssetPairSettingsEntity(GetPartitionKey(), GetRowKey())
-            {
-                AssetPairId = baseAssetPairId
-            };
+            var entity = new BaseAssetPairSettingsEntity(GetPartitionKey(), GetRowKey());
+            Mapper.Map(settings, entity);
 
             return _storage.InsertOrReplaceAsync(entity);
         }

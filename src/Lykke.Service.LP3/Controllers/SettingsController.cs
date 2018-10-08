@@ -38,6 +38,15 @@ namespace Lykke.Service.LP3.Controllers
             return model;
         }
         
+        [HttpPost("baseAssetPair")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task SaveBaseAssetPairSettingsAsync([FromBody] BaseAssetPairSettingsModel model)
+        {
+            var settings = Mapper.Map<BaseAssetPairSettings>(model);
+            await _settingsService.SaveBaseAssetPairSettings(settings);
+        }
+        
         [HttpGet("levels")]
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
         public async Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()

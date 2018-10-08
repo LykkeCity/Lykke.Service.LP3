@@ -57,6 +57,11 @@ namespace Lykke.Service.LP3.DomainServices
             }
         
             _baseAssetPairId = (await _settingsService.GetBaseAssetPairSettings())?.AssetPairId;
+            if (_baseAssetPairId == null)
+            {
+                _log.Info("No baseAssetPairId to start algorithm, waiting for adding it via API");
+                return;
+            }
 
             await _tradingAlgorithm.StartAsync(initialPrice.Price);
 

@@ -7,6 +7,7 @@ using Common.Log;
 using Lykke.Common.Log;
 using Lykke.MatchingEngine.Connector.Abstractions.Services;
 using Lykke.MatchingEngine.Connector.Models.Api;
+using Lykke.Service.Assets.Client.Models.v3;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
@@ -30,7 +31,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             _log = logFactory.CreateLog(this);
         }
         
-        public async Task ApplyAsync(string assetPairId, IReadOnlyList<LimitOrder> limitOrders)
+        public async Task ApplyAsync(AssetPair assetPair, IReadOnlyList<LimitOrder> limitOrders)
         {
             string walletId = await _settingsService.GetWalletIdAsync();
 
@@ -47,8 +48,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 {
                     Id = Guid.NewGuid().ToString("D"),
                     OrderAction = limitOrder.TradeType.ToOrderAction(),
-                    Price = (double) limitOrder.Price,
-                    Volume = (double) Math.Abs(limitOrder.Volume)
+                    Price = (double) Math.Round(limitOrder.Price, assetPair.Accuracy),
+                    Volume = (double) Math.Round(Math.Abs(limitOrder.Volume), assetPair.InvertedAccuracy)
                 };
 
                 multiOrderItems.Add(multiOrderItem);
@@ -60,7 +61,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             {
                 Id = Guid.NewGuid().ToString(),
                 ClientId = walletId,
-                AssetPairId = assetPairId,
+                AssetPairId = assetPair.Id,
                 CancelPreviousOrders = true,
                 Orders = multiOrderItems,
                 CancelMode = CancelMode.BothSides

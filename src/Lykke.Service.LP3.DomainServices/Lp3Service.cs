@@ -6,10 +6,13 @@ using System.Threading.Tasks;
 using Autofac;
 using Common.Log;
 using Lykke.Common.Log;
+using Lykke.Service.Assets.Client.Models.v3;
+using Lykke.Service.Assets.Client.ReadModels;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
+using Lykke.Service.LP3.DomainServices.Extensions;
 
 namespace Lykke.Service.LP3.DomainServices
 {
@@ -19,6 +22,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly ITradingAlgorithm _tradingAlgorithm;
         private readonly IInitialPriceService _initialPriceService;
         private readonly ILykkeExchange _lykkeExchange;
+        private readonly IAssetPairsReadModelRepository _assetsService;
         private readonly ILog _log;
         
         private string _baseAssetPairId;
@@ -27,17 +31,20 @@ namespace Lykke.Service.LP3.DomainServices
         private bool _started;
 
         private List<LimitOrder> _orders = new List<LimitOrder>();
+        private AssetPair _assetPair;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
             ITradingAlgorithm tradingAlgorithm,
             IInitialPriceService initialPriceService,
-            ILykkeExchange lykkeExchange)
+            ILykkeExchange lykkeExchange,
+            IAssetPairsReadModelRepository assetsService)
         {
             _settingsService = settingsService;
             _tradingAlgorithm = tradingAlgorithm;
             _initialPriceService = initialPriceService;
             _lykkeExchange = lykkeExchange;
+            _assetsService = assetsService;
             _log = logFactory.CreateLog(this);
         }
         
@@ -60,6 +67,13 @@ namespace Lykke.Service.LP3.DomainServices
             if (_baseAssetPairId == null)
             {
                 _log.Info("No baseAssetPairId to start algorithm, waiting for adding it via API");
+                return;
+            }
+
+            _assetPair = _assetsService.TryGet(_baseAssetPairId);
+            if (_assetPair == null)
+            {
+                _log.Error($"AssetService returned null for {_baseAssetPairId}");
                 return;
             }
 
@@ -139,13 +153,13 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 var orders = _tradingAlgorithm.GetOrders().ToList();
 
-                if (!orders.SequenceEqual(_orders))
+                if (!orders.SequenceEqual(_orders, new LimitOrdersComparer()))
                 {
                     _orders = orders;
                     
                     _log.Info("New orders are going to be placed to the exchange", context: $"Orders: [{string.Join(", ", _orders)}]");
                     
-                    await _lykkeExchange.ApplyAsync(_baseAssetPairId, _orders);
+                    await _lykkeExchange.ApplyAsync(_assetPair, _orders); // TODO: retry if error
                 }
                 else
                 {

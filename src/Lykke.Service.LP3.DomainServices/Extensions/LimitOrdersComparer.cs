@@ -9,7 +9,8 @@ namespace Lykke.Service.LP3.DomainServices.Extensions
         {
             return x.Price == y.Price &&
                    x.Volume == y.Volume &&
-                   x.TradeType == y.TradeType;
+                   x.TradeType == y.TradeType &&
+                   x.Error == y.Error;
         }
 
         public int GetHashCode(LimitOrder obj)

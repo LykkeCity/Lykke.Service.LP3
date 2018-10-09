@@ -20,6 +20,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         private readonly IMatchingEngineClient _matchingEngineClient;
         private readonly ISettingsService _settingsService;
         private readonly ILog _log;
+
+        private List<LimitOrder> _orders = new List<LimitOrder>();
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
@@ -33,6 +35,12 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         
         public async Task ApplyAsync(AssetPair assetPair, IReadOnlyList<LimitOrder> limitOrders)
         {
+            if (limitOrders.SequenceEqual(_orders, new LimitOrdersComparer()))
+            {
+                _log.Info("New orders are the same as previously placed, don't replace");
+                return;
+            }
+            
             string walletId = await _settingsService.GetWalletIdAsync();
 
             if (string.IsNullOrEmpty(walletId))
@@ -88,6 +96,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 throw new Exception("ME response is null");
             }
 
+            _log.Info("ME place multi limit order response", new {response = $"data: {response.ToJson()}"});
+
             foreach (var orderStatus in response.Statuses)
             {
                 if (map.TryGetValue(orderStatus.Id, out var limitOrderId))
@@ -97,11 +107,11 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                     limitOrder.Error = orderStatus.Status.ToOrderError();
                     limitOrder.ErrorMessage = limitOrder.Error != LimitOrderError.Unknown 
                         ? orderStatus.StatusReason
-                        : (!string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error");
+                        : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
                 }
             }
 
-            _log.Info("ME place multi limit order response", new {response = $"data: {response.ToJson()}"});
+            _orders = limitOrders.ToList();
         }
     }
 }

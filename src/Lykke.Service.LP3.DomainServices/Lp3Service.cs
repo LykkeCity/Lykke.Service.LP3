@@ -151,20 +151,9 @@ namespace Lykke.Service.LP3.DomainServices
         {
             try
             {
-                var orders = _tradingAlgorithm.GetOrders().ToList();
+                _orders = _tradingAlgorithm.GetOrders().ToList();
 
-                if (!orders.SequenceEqual(_orders, new LimitOrdersComparer()))
-                {
-                    _orders = orders;
-                    
-                    _log.Info("New orders are going to be placed to the exchange", context: $"Orders: [{string.Join(", ", _orders)}]");
-                    
-                    await _lykkeExchange.ApplyAsync(_assetPair, _orders); // TODO: retry if error
-                }
-                else
-                {
-                    _log.Info("New orders are the same as previously placed, don't replace");
-                }
+                await _lykkeExchange.ApplyAsync(_assetPair, _orders);
             }
             catch (Exception e)
             {

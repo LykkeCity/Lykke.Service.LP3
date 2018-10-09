@@ -24,22 +24,24 @@ namespace Lykke.Service.LP3.DomainServices
         
         public async Task<IEnumerable<LimitOrder>> GetOrdersAsync(IEnumerable<LimitOrder> currentOrders)
         {
-            var worsts = GetBaseBidAsk(currentOrders.ToList());
+            if (!TryGetBaseBidAsk(currentOrders.ToList(), out var bid, out var ask))
+            {
+                return Enumerable.Empty<LimitOrder>();
+            }
 
             var settings = await _settingsService.GetAdditionalVolumeSettingsAsync();
-
             if (settings == null)
             {
                 return Enumerable.Empty<LimitOrder>();
             }
 
-            var asks = GetOrders(worsts.ask, settings, TradeType.Sell);
-            var bids = GetOrders(worsts.bid, settings, TradeType.Buy);
+            var asks = GetOrders(ask, settings, TradeType.Sell);
+            var bids = GetOrders(bid, settings, TradeType.Buy);
 
             return asks.Union(bids);
         }
 
-        private (decimal bid, decimal ask) GetBaseBidAsk(ICollection<LimitOrder> currentOrders)
+        private bool TryGetBaseBidAsk(ICollection<LimitOrder> currentOrders, out decimal bid, out decimal ask)
         {
             var asks = currentOrders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var bids = currentOrders.Where(x => x.TradeType == TradeType.Buy).OrderBy(x => x.Price).ToList();
@@ -53,9 +55,14 @@ namespace Lykke.Service.LP3.DomainServices
             if (worstAsk == null && worstBid == null)
             {
                 _log.Info("No current orders to create additional orders");
+                ask = bid = 0;
+                return false;
             }
 
-            return (worstBid?.Price ?? bestAsk.Price, worstAsk?.Price ?? bestBid.Price);
+            bid = worstBid?.Price ?? bestAsk.Price;
+            ask = worstAsk?.Price ?? bestBid.Price;
+
+            return true;
         }
 
         private IEnumerable<LimitOrder> GetOrders(decimal worstPrice, AdditionalVolumeSettings settings, TradeType tradeType)

@@ -18,6 +18,7 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
         protected override void Load(ContainerBuilder builder)
         {
             const string settingsTableName = "Settings";
+            const string tradesTableName = "Trades";
             
             builder.Register(container => new LevelRepository(
                     AzureTableStorage<LevelEntity>.Create(_connectionString,
@@ -41,6 +42,12 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
                     AzureTableStorage<AdditionalVolumeSettingsEntity>.Create(_connectionString,
                         settingsTableName, container.Resolve<ILogFactory>())))
                 .As<IAdditionalVolumeSettingsRepository>()
+                .SingleInstance();
+            
+            builder.Register(container => new TradeRepository(
+                    AzureTableStorage<TradeEntity>.Create(_connectionString,
+                        tradesTableName, container.Resolve<ILogFactory>())))
+                .As<ITradeRepository>()
                 .SingleInstance();
         }
     }

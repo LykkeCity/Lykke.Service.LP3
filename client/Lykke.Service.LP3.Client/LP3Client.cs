@@ -17,6 +17,8 @@ namespace Lykke.Service.LP3.Client
         
         public ILevelsApi LevelsApi { get; }
         
+        public ITradesApi TradesApi { get; }
+        
         /// <summary>C-tor</summary>
         public LP3Client(IHttpClientGenerator httpClientGenerator)
         {
@@ -24,6 +26,7 @@ namespace Lykke.Service.LP3.Client
             InitialPriceApi = httpClientGenerator.Generate<IInitialPriceApi>();
             OrdersApi = httpClientGenerator.Generate<IOrdersApi>();
             LevelsApi = httpClientGenerator.Generate<ILevelsApi>();
+            TradesApi = httpClientGenerator.Generate<ITradesApi>();
         }
     }
 }

@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Lykke.MatchingEngine.ExchangeModels;
 using Lykke.Service.LP3.Domain.Orders;
 
-namespace Lykke.Service.LP3.Domain.Services
+namespace Lykke.Service.LP3.Domain.Repositories
 {
-    public interface ILykkeTradeService
+    public interface ITradeRepository
     {
-        Task HandleAsync(LimitOrders limitOrders);
         Task<IReadOnlyList<Trade>> GetAsync(DateTime startDate, DateTime endDate);
+
+        Task InsertAsync(Trade trade);
     }
 }

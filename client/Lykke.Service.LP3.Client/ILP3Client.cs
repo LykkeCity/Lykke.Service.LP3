@@ -17,5 +17,7 @@ namespace Lykke.Service.LP3.Client
         IOrdersApi OrdersApi { get; }
         
         ILevelsApi LevelsApi { get; }
+        
+        ITradesApi TradesApi { get; }
     }
 }

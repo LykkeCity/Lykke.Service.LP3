@@ -3,6 +3,7 @@ using Lykke.Service.LP3.Client.Models;
 using Lykke.Service.LP3.Client.Models.Levels;
 using Lykke.Service.LP3.Client.Models.Orders;
 using Lykke.Service.LP3.Client.Models.Settings;
+using Lykke.Service.LP3.Client.Models.Trades;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
 
@@ -24,6 +25,8 @@ namespace Lykke.Service.LP3
             CreateMap<InitialPriceModel, InitialPrice>(MemberList.Destination);
             
             CreateMap<LimitOrder, LimitOrderModel>(MemberList.Source);
+            
+            CreateMap<Trade, TradeModel>(MemberList.Source);
         }
     }
 }

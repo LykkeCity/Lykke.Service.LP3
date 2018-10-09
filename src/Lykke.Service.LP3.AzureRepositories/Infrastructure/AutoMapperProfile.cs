@@ -1,5 +1,6 @@
 using AutoMapper;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
 
 namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
@@ -23,6 +24,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
 
             CreateMap<AdditionalVolumeSettingsEntity, AdditionalVolumeSettings>(MemberList.Destination);
             CreateMap<AdditionalVolumeSettings, AdditionalVolumeSettingsEntity>(MemberList.Source);
+            
+            CreateMap<TradeEntity, Trade>(MemberList.Destination);
+            CreateMap<Trade, TradeEntity>(MemberList.Source);
         }
     }
 }

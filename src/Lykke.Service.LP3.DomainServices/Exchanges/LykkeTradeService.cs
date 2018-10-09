@@ -9,6 +9,7 @@ using Lykke.Common.Log;
 using Lykke.MatchingEngine.Connector.Models.Events;
 using Lykke.MatchingEngine.ExchangeModels;
 using Lykke.Service.LP3.Domain.Orders;
+using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
 using LimitOrder = Lykke.MatchingEngine.ExchangeModels.LimitOrder;
 using Trade = Lykke.Service.LP3.Domain.Orders.Trade;
@@ -19,19 +20,27 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
     public class LykkeTradeService : ILykkeTradeService
     {
         private readonly ISettingsService _settingsService;
+        private readonly ITradeRepository _tradeRepository;
         private readonly ILp3Service _lp3Service;
         private readonly ILog _log;
 
         public LykkeTradeService(
             ISettingsService settingsService,
+            ITradeRepository tradeRepository,
             ILp3Service lp3Service,
             ILogFactory logFactory)
         {
             _settingsService = settingsService;
+            _tradeRepository = tradeRepository;
             _lp3Service = lp3Service;
             _log = logFactory.CreateLog(this);
         }
 
+        public Task<IReadOnlyList<Trade>> GetAsync(DateTime startDate, DateTime endDate)
+        {
+            return _tradeRepository.GetAsync(startDate, endDate);
+        }
+        
         public async Task HandleAsync(LimitOrders limitOrders)
         {
             try
@@ -54,12 +63,28 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
                 if (trades.Any())
                 {
+                    await SaveTrades(trades);
                     await _lp3Service.HandleTradesAsync(trades);
                 }
             }
             catch (Exception exception)
             {
                 _log.Error(exception, "An error occurred during processing trades", limitOrders);
+            }
+        }
+
+        private async Task SaveTrades(IReadOnlyList<Trade> trades)
+        {
+            foreach (var trade in trades)
+            {
+                try
+                {
+                    await _tradeRepository.InsertAsync(trade);
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e, $"Error on saving trade {trade.ToJson()}");
+                }
             }
         }
 

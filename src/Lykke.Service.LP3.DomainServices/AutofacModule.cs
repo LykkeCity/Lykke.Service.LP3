@@ -29,17 +29,15 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<ILykkeTradeService>()
                 .SingleInstance();
 
-            builder.RegisterType<TradingAlgorithm>()
-                .As<ITradingAlgorithm>()
-                .SingleInstance();
-
             builder.RegisterType<InitialPriceService>()
                 .As<IInitialPriceService>()
                 .SingleInstance();
 
             builder.RegisterType<LevelsService>()
                 .As<ILevelsService>()
-                .SingleInstance();
+                .As<IStartable>()
+                .SingleInstance()
+                .AutoActivate();
 
             builder.RegisterType<Lp3Service>()
                 .As<ILp3Service>()

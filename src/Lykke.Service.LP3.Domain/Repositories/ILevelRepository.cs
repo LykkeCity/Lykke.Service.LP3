@@ -1,15 +1,13 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Lykke.Service.LP3.Domain.Settings;
 
 namespace Lykke.Service.LP3.Domain.Repositories
 {
     public interface ILevelRepository
     {
-        Task<IReadOnlyList<LevelSettings>> GetSettingsAsync();
-        Task AddSettingsAsync(LevelSettings levelSettings);
+        Task AddAsync(Level level);
         Task DeleteAsync(string name);
-        Task UpdateSettingsAsync(LevelSettings levelSettings);
+        Task UpdateSettingsAsync(string name, decimal delta, decimal volume);
         Task<IReadOnlyList<Level>> GetLevels();
         Task SaveStatesAsync(IEnumerable<Level> levels);
     }

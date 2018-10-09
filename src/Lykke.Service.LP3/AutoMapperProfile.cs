@@ -5,7 +5,6 @@ using Lykke.Service.LP3.Client.Models.Orders;
 using Lykke.Service.LP3.Client.Models.Settings;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
-using Lykke.Service.LP3.Domain.Settings;
 
 namespace Lykke.Service.LP3
 {
@@ -13,15 +12,18 @@ namespace Lykke.Service.LP3
     {
         public AutoMapperProfile()
         {
-            CreateMap<LevelSettings, LevelSettingsModel>(MemberList.Source);
-            CreateMap<LevelSettingsModel, LevelSettings>(MemberList.Destination);
+            CreateMap<Level, LevelSettingsModel>(MemberList.Destination)
+                .ForMember(x => x.Volume, m => m.MapFrom(x => x.OriginalVolume));
+            
+            CreateMap<LevelSettingsModel, Level>(MemberList.None)
+                .ConstructUsing(x => new Level(x.Name, x.Delta, x.Volume));
+            
+            CreateMap<Level, LevelModel>(MemberList.Source);
             
             CreateMap<InitialPrice, InitialPriceModel>(MemberList.Source);
             CreateMap<InitialPriceModel, InitialPrice>(MemberList.Destination);
             
             CreateMap<LimitOrder, LimitOrderModel>(MemberList.Source);
-            
-            CreateMap<Level, LevelModel>(MemberList.Source);
         }
     }
 }

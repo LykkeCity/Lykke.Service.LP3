@@ -1,66 +1,97 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
-using Lykke.Service.LP3.Domain.Settings;
-using Lykke.Service.LP3.Domain.States;
 
 namespace Lykke.Service.LP3.DomainServices
 {
-    public class LevelsService : ILevelsService
+    public class LevelsService : ILevelsService, IStartable
     {
-        public event Action<LevelsChangedEventArgs> SettingsChanged;
-        
         private readonly ILevelRepository _levelRepository;
 
+        private List<Level> _levels;
+        private decimal _lastPrice;
 
         public LevelsService(ILevelRepository levelRepository)
         {
             _levelRepository = levelRepository;
         }
 
-        public async Task AddAsync(LevelSettings levelSettings)
+        public async Task AddAsync(Level level)
         {
-            await _levelRepository.AddSettingsAsync(levelSettings);
-            SettingsChanged?.Invoke(new LevelsChangedEventArgs
-            {
-                AddedLevel = levelSettings
-            });
+            level.UpdateReference(_lastPrice);
+            
+            await _levelRepository.AddAsync(level);
+            
+            _levels.Add(level);
         }
 
         public async Task DeleteAsync(string name)
         {
             await _levelRepository.DeleteAsync(name);
-            SettingsChanged?.Invoke(new LevelsChangedEventArgs
+
+            var level = FindLevelByName(name);
+
+            _levels.Remove(level);
+        }
+
+        public async Task UpdateAsync(string name, decimal delta, decimal volume)
+        {
+            await _levelRepository.UpdateSettingsAsync(name, delta, volume);
+
+            var level = FindLevelByName(name);
+            level?.UpdateSettings(delta, volume);
+        }
+
+        public IReadOnlyList<Level> GetLevels()
+        {
+            return _levels;
+        }
+        
+        public IEnumerable<LimitOrder> GetOrders()
+        {
+            return _levels.SelectMany(x => x.GetOrders());
+        }
+        
+        private Level FindLevelByName(string name)
+        {
+            return _levels.SingleOrDefault(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        public void UpdateReference(decimal lastPrice)
+        {
+            _lastPrice = lastPrice;
+            
+            foreach (var level in _levels.Where(x => x.Reference == 0))
             {
-                NameOfDeletedLevel = name
-            });
+                level.UpdateReference(lastPrice);
+            }
         }
 
-        public async Task UpdateAsync(LevelSettings levelSettings)
+        private async Task PopulateLevels()
         {
-            await _levelRepository.UpdateSettingsAsync(levelSettings);
-            SettingsChanged?.Invoke(new LevelsChangedEventArgs
+            if (_levels == null)
             {
-                ChangedLevel = levelSettings
-            });
+                _levels = (await _levelRepository.GetLevels()).ToList();
+            }
         }
 
-        public Task<IReadOnlyList<Level>> GetLevels()
+        public async Task SaveStatesAsync()
         {
-            return _levelRepository.GetLevels();
+            if (_levels != null)
+            {
+                await _levelRepository.SaveStatesAsync(_levels);    
+            }
         }
 
-        public Task SaveStatesAsync(IEnumerable<Level> levels)
+        public void Start()
         {
-            return _levelRepository.SaveStatesAsync(levels);
-        }
-
-        public Task<IReadOnlyList<LevelSettings>> GetLevelSettingsAsync()
-        {
-            return _levelRepository.GetSettingsAsync();
+            PopulateLevels().GetAwaiter().GetResult();
         }
     }
 }

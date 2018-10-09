@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
+using Common;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.Assets.Client.Models.v3;
@@ -12,36 +13,37 @@ using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
-using Lykke.Service.LP3.DomainServices.Extensions;
 
 namespace Lykke.Service.LP3.DomainServices
 {
     public class Lp3Service : ILp3Service, IStartable
     {
         private readonly ISettingsService _settingsService;
-        private readonly ITradingAlgorithm _tradingAlgorithm;
+        private readonly ILevelsService _levelsService;
         private readonly IInitialPriceService _initialPriceService;
         private readonly ILykkeExchange _lykkeExchange;
         private readonly IAssetPairsReadModelRepository _assetsService;
         private readonly ILog _log;
-        
-        private string _baseAssetPairId;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private bool _started;
 
         private List<LimitOrder> _orders = new List<LimitOrder>();
         private AssetPair _assetPair;
+        
+        private decimal _inventory = 0;
+        private decimal _oppositeInventory = 0;
+        private decimal _lastPrice;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
-            ITradingAlgorithm tradingAlgorithm,
+            ILevelsService levelsService,
             IInitialPriceService initialPriceService,
             ILykkeExchange lykkeExchange,
             IAssetPairsReadModelRepository assetsService)
         {
             _settingsService = settingsService;
-            _tradingAlgorithm = tradingAlgorithm;
+            _levelsService = levelsService;
             _initialPriceService = initialPriceService;
             _lykkeExchange = lykkeExchange;
             _assetsService = assetsService;
@@ -63,21 +65,21 @@ namespace Lykke.Service.LP3.DomainServices
                 return;
             }
         
-            _baseAssetPairId = (await _settingsService.GetBaseAssetPairSettings())?.AssetPairId;
-            if (_baseAssetPairId == null)
+            var baseAssetPairId = (await _settingsService.GetBaseAssetPairSettings())?.AssetPairId;
+            if (baseAssetPairId == null)
             {
                 _log.Info("No baseAssetPairId to start algorithm, waiting for adding it via API");
                 return;
             }
 
-            _assetPair = _assetsService.TryGet(_baseAssetPairId);
+            _assetPair = _assetsService.TryGet(baseAssetPairId);
             if (_assetPair == null)
             {
-                _log.Error($"AssetService returned null for {_baseAssetPairId}");
+                _log.Error($"AssetService returned null for {baseAssetPairId}");
                 return;
             }
 
-            await _tradingAlgorithm.StartAsync(initialPrice.Price);
+            _levelsService.UpdateReference(initialPrice.Price);
 
             _started = true;
             
@@ -92,7 +94,7 @@ namespace Lykke.Service.LP3.DomainServices
                 
                 foreach (var trade in trades)
                 {
-                    _tradingAlgorithm.HandleTrade(trade); // TODO: pass all trades at once?
+                    HandleTrade(trade); // TODO: pass all trades at once?
                 }
 
                 await ApplyOrdersAsync();
@@ -118,10 +120,96 @@ namespace Lykke.Service.LP3.DomainServices
         {
             return _orders;
         }
-
-        public IReadOnlyList<Level> GetLevels()
+        
+        private void HandleTrade(Trade trade)
         {
-            return _tradingAlgorithm.GetLevels();
+            _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");
+
+            _lastPrice = trade.Price;
+            var volume = trade.Volume;
+
+            if (trade.Type == TradeType.Sell)
+            {
+                volume *= -1;
+            }
+            
+            while (volume != 0)
+            {
+                volume = HandleVolume(volume);
+            }
+            
+            _levelsService.SaveStatesAsync().GetAwaiter().GetResult();
+        }
+        
+        private decimal HandleVolume(decimal volume)
+        {
+            if (volume < 0)
+            {
+                var level = _levelsService.GetLevels().OrderBy(e => e.Sell).First();
+
+                if (volume <= level.VolumeSell)
+                {
+                    volume -= level.VolumeSell;
+
+                    _inventory += level.VolumeSell;
+                    _oppositeInventory -= level.VolumeSell * level.Sell;
+
+                    level.Inventory += level.VolumeSell;
+                    level.OppositeInventory -= level.VolumeSell * level.Sell;
+
+                    level.UpdateReference(level.Sell);
+                    level.VolumeSell = -level.OriginalVolume;
+                }
+                else
+                {
+                    level.VolumeSell -= volume;
+
+                    _inventory += volume;
+                    _oppositeInventory -= volume * level.Sell;
+                    level.Inventory += volume;
+                    level.OppositeInventory -= volume * level.Sell;
+
+                    volume = 0;
+                }
+                
+                _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
+
+                return volume;
+            }
+
+            if (volume > 0)
+            {
+                var level = _levelsService.GetLevels().OrderByDescending(e => e.Buy).First();
+
+                if (volume >= level.VolumeBuy)
+                {
+                    volume -= level.VolumeBuy;
+
+                    _inventory += level.VolumeBuy;
+                    _oppositeInventory -= level.VolumeBuy * level.Buy;
+
+                    level.Inventory += level.VolumeBuy;
+                    level.OppositeInventory -= level.VolumeBuy * level.Buy;
+
+                    level.UpdateReference(level.Buy);
+                    level.VolumeBuy = level.OriginalVolume;
+                }
+                else
+                {
+                    level.VolumeBuy -= volume;
+                    _inventory += volume;
+                    _oppositeInventory -= volume * level.Buy;
+                    level.Inventory += volume;
+                    level.OppositeInventory -= volume * level.Buy;
+                    volume = 0;
+                }
+                
+                _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
+                
+                return volume;
+            }
+
+            return 0;
         }
 
         private async Task SynchronizeAsync(Func<Task> asyncAction)
@@ -151,7 +239,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             try
             {
-                _orders = _tradingAlgorithm.GetOrders().ToList();
+                _orders = _levelsService.GetOrders().ToList();
 
                 await _lykkeExchange.ApplyAsync(_assetPair, _orders);
             }

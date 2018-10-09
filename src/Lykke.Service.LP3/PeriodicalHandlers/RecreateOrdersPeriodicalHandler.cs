@@ -17,9 +17,7 @@ namespace Lykke.Service.LP3.PeriodicalHandlers
             ILp3Service lp3Service)
         {
             _lp3Service = lp3Service;
-            // TODO: Sometimes, it is enough to hardcode the period right here, but sometimes it's better to move it to the settings.
-            // Choose the simplest and sufficient solution
-            _timerTrigger = new TimerTrigger(nameof(RecreateOrdersPeriodicalHandler), TimeSpan.FromMinutes(1), logFactory);
+            _timerTrigger = new TimerTrigger(nameof(RecreateOrdersPeriodicalHandler), TimeSpan.FromSeconds(30), logFactory);
             _timerTrigger.Triggered += Execute;
         }
 

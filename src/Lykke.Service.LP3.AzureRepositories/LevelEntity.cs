@@ -22,7 +22,7 @@ namespace Lykke.Service.LP3.AzureRepositories
         
         private decimal _delta;
         private decimal _volume;
-//        private decimal _reference;
+        private decimal _reference;
         private decimal _inventory;
         private decimal _oppositeInventory;
         private decimal _volumeSell;
@@ -48,15 +48,15 @@ namespace Lykke.Service.LP3.AzureRepositories
             }
         }
 
-//        public decimal Reference
-//        {
-//            get => _reference;
-//            set
-//            {
-//                _reference = value;
-//                MarkValueTypePropertyAsDirty(nameof(Reference));
-//            }
-//        }
+        public decimal Reference
+        {
+            get => _reference;
+            set
+            {
+                _reference = value;
+                MarkValueTypePropertyAsDirty(nameof(Reference));
+            }
+        }
 
         public decimal Inventory
         {

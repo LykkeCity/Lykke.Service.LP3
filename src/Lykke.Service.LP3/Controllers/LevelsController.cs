@@ -11,18 +11,18 @@ namespace Lykke.Service.LP3.Controllers
     [Route("/api/[controller]")]
     public class LevelsController : Controller, ILevelsApi
     {
-        private readonly ILp3Service _lp3Service;
+        private readonly ILevelsService _levelsService;
 
-        public LevelsController(ILp3Service lp3Service)
+        public LevelsController(ILevelsService levelsService)
         {
-            _lp3Service = lp3Service;
+            _levelsService = levelsService;
         }
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<LevelModel>), (int) HttpStatusCode.OK)]
         public IReadOnlyList<LevelModel> GetAll()
         {
-            var levels = _lp3Service.GetLevels();
+            var levels = _levelsService.GetLevels();
 
             var models = Mapper.Map<IReadOnlyList<LevelModel>>(levels);
 

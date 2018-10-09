@@ -1,38 +1,31 @@
 using System;
 using System.Collections.Generic;
 using Lykke.Service.LP3.Domain.Orders;
-using Lykke.Service.LP3.Domain.Settings;
-using Lykke.Service.LP3.Domain.States;
 
 namespace Lykke.Service.LP3.Domain
 {
     public class Level
     {
-        public Level(LevelSettings levelSettings)
+        public Level(string name, decimal delta, decimal volume)
         {
-            OriginalVolume = levelSettings.Volume;
-            Delta = levelSettings.Delta;
-            Name = levelSettings.Name;
-            VolumeSell = -levelSettings.Volume;
-            VolumeBuy = levelSettings.Volume;
+            Name = name;
+            Delta = delta;
+            
+            OriginalVolume = volume;
+            VolumeSell = -volume;
+            VolumeBuy = volume;
         }
 
-        public Level(LevelSettings levelSettings, LevelState levelState)
-         : this(levelSettings)
+        public Level(string name, decimal delta, decimal volume, decimal volumeBuy, decimal volumeSell, 
+            decimal inventory, decimal oppositeInventory,
+            decimal reference)
+         : this(name, delta, volume)
         {
-            if (levelState.VolumeBuy != 0)
-            {
-                VolumeBuy = levelState.VolumeBuy;
-            }
-
-            if (levelState.VolumeSell != 0)
-            {
-                VolumeSell = levelState.VolumeSell;
-            }
-            
-            //Reference = levelState.Reference;
-            Inventory = levelState.Inventory;
-            OppositeInventory = levelState.OppositeInventory;
+            VolumeBuy = volumeBuy;
+            VolumeSell = volumeSell;
+            Inventory = inventory;
+            OppositeInventory = oppositeInventory;
+            Reference = reference;
         }
 
         public decimal VolumeSell { get; set; }
@@ -62,12 +55,16 @@ namespace Lykke.Service.LP3.Domain
             Reference = price;
         }
         
-        public void UpdateSettings(LevelSettings levelSettings)
+        public void UpdateSettings(decimal delta, decimal volume)
         {
-            Delta = levelSettings.Delta;
-            VolumeSell = -levelSettings.Volume;
-            VolumeBuy = levelSettings.Volume;
-            OriginalVolume = levelSettings.Volume;
+            Delta = delta;
+
+            if (volume != OriginalVolume)
+            {
+                VolumeSell = -volume;
+                VolumeBuy = volume;
+                OriginalVolume = volume;    
+            }
         }
     }
 }

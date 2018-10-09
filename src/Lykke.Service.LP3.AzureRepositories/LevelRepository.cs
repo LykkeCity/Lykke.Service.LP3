@@ -5,8 +5,6 @@ using AutoMapper;
 using AzureStorage;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Repositories;
-using Lykke.Service.LP3.Domain.Settings;
-using Lykke.Service.LP3.Domain.States;
 
 namespace Lykke.Service.LP3.AzureRepositories
 {
@@ -19,17 +17,10 @@ namespace Lykke.Service.LP3.AzureRepositories
             _storage = storage;
         }
 
-        public async Task<IReadOnlyList<LevelSettings>> GetSettingsAsync()
+        public Task AddAsync(Level level)
         {
-            var data = await _storage.GetDataAsync(GetPartitionKey());
-
-            return Mapper.Map<List<LevelSettings>>(data);
-        }
-
-        public Task AddSettingsAsync(LevelSettings levelSettings)
-        {
-            var entity = new LevelEntity(GetPartitionKey(), GetRowKey(levelSettings.Name));
-            Mapper.Map(levelSettings, entity);
+            var entity = new LevelEntity(GetPartitionKey(), GetRowKey(level.Name));
+            Mapper.Map(level, entity);
 
             return _storage.InsertAsync(entity);
         }
@@ -39,27 +30,22 @@ namespace Lykke.Service.LP3.AzureRepositories
             return _storage.DeleteAsync(GetPartitionKey(), GetRowKey(name));
         }
 
-        public Task UpdateSettingsAsync(LevelSettings levelSettings)
+        public async Task UpdateSettingsAsync(string name, decimal delta, decimal volume)
         {
-            var entity = new LevelEntity(GetPartitionKey(), GetRowKey(levelSettings.Name));
-            Mapper.Map(levelSettings, entity);
-
-            return _storage.InsertOrMergeAsync(entity);
+            var entity = await _storage.GetDataAsync(GetPartitionKey(), GetRowKey(name));
+            if (entity != null)
+            {
+                entity.Delta = delta;
+                entity.Volume = volume;
+                await _storage.InsertOrMergeAsync(entity);
+            }
         }
 
         public async Task<IReadOnlyList<Level>> GetLevels()
         {
             var data = await _storage.GetDataAsync(GetPartitionKey());
 
-            var result = new List<Level>();
-
-            foreach (var levelEntity in data)
-            {
-                var settings = Mapper.Map<LevelSettings>(levelEntity);
-                var state = Mapper.Map<LevelState>(levelEntity);
-                
-                result.Add(new Level(settings, state));
-            }
+            var result = Mapper.Map<List<Level>>(data);
             
             return result;
         }
@@ -70,6 +56,7 @@ namespace Lykke.Service.LP3.AzureRepositories
             {
                 var entity = new LevelEntity(GetPartitionKey(), GetRowKey(level.Name));
                 Mapper.Map(level, entity);
+                
                 return entity;
             });
             
@@ -80,6 +67,6 @@ namespace Lykke.Service.LP3.AzureRepositories
             => "LevelsSettings";
 
         private static string GetRowKey(string name)
-            => name.GetHashCode().ToString();
+            => name.ToLowerInvariant();
     }
 }

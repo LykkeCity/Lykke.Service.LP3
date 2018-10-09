@@ -1,6 +1,6 @@
 using AutoMapper;
+using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Settings;
-using Lykke.Service.LP3.Domain.States;
 
 namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
 {
@@ -8,11 +8,15 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
     {
         public AutoMapperProfile()
         {
-            CreateMap<LevelEntity, LevelSettings>(MemberList.Destination);
-            CreateMap<LevelSettings, LevelEntity>(MemberList.Source);
+            CreateMap<LevelEntity, Level>(MemberList.Destination)
+                .ForMember(x => x.OriginalVolume, m => m.Ignore())
+                .ConstructUsing(x => new Level(x.Name, x.Delta, x.Volume, x.VolumeBuy, x.VolumeSell, 
+                    x.Inventory, x.OppositeInventory, x.Reference));
             
-            CreateMap<LevelEntity, LevelState>(MemberList.Destination);
-            CreateMap<LevelState, LevelEntity>(MemberList.Source);
+            CreateMap<Level, LevelEntity>(MemberList.Source)
+                .ForSourceMember(x => x.Sell, m => m.Ignore())
+                .ForSourceMember(x => x.Buy, m => m.Ignore())
+                .ForMember(x => x.Volume, m => m.MapFrom(x => x.OriginalVolume));
             
             CreateMap<BaseAssetPairSettingsEntity, BaseAssetPairSettings>(MemberList.Destination);
             CreateMap<BaseAssetPairSettings, BaseAssetPairSettingsEntity>(MemberList.Source);

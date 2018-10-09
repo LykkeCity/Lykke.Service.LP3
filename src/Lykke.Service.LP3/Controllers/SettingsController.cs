@@ -4,10 +4,12 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
+using Common;
 using Lykke.Common.Api.Contract.Responses;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.Settings;
+using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
 using Microsoft.AspNetCore.Mvc;
@@ -51,9 +53,9 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
         public async Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
         {
-            var levelSettings = await _levelsService.GetLevelSettingsAsync();
+            var levels = _levelsService.GetLevels();
             
-            var model = Mapper.Map<IReadOnlyList<LevelSettingsModel>>(levelSettings);
+            var model = Mapper.Map<IReadOnlyList<LevelSettingsModel>>(levels);
 
             return model;
         }
@@ -63,15 +65,15 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task AddAsync([FromBody] LevelSettingsModel model)
         {
-            var levelsSettings = await _levelsService.GetLevelSettingsAsync();
-            if (levelsSettings.Any(x => string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
+            var levels = _levelsService.GetLevels();
+            if (levels.Any(x => string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 throw new ValidationApiException($"A level with name {model.Name} already exist");
             }
 
-            var levelSettings = Mapper.Map<LevelSettings>(model);
+            var level = Mapper.Map<Level>(model);
 
-            await _levelsService.AddAsync(levelSettings);
+            await _levelsService.AddAsync(level);
         }
 
         [HttpDelete("levels/{name}")]
@@ -88,15 +90,13 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task UpdateAsync([FromBody] LevelSettingsModel model)
         {
-            var levelsSettings = await _levelsService.GetLevelSettingsAsync();
-            if (levelsSettings.All(x => !string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
+            var level = _levelsService.GetLevels();
+            if (level.All(x => !string.Equals(x.Name, model.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 throw new ValidationApiException($"A level with name {model.Name} doesn't exist");
             }
 
-            var levelSettings = Mapper.Map<LevelSettings>(model);
-
-            await _levelsService.UpdateAsync(levelSettings);
+            await _levelsService.UpdateAsync(model.Name, model.Delta, model.Volume);
         }
     }
 }

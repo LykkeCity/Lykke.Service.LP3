@@ -21,7 +21,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         private readonly ISettingsService _settingsService;
         private readonly ILog _log;
 
-        private List<LimitOrder> _orders = new List<LimitOrder>();
+        private List<LimitOrder> _orders;
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
@@ -35,7 +35,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         
         public async Task ApplyAsync(AssetPair assetPair, IReadOnlyList<LimitOrder> limitOrders)
         {
-            if (limitOrders.SequenceEqual(_orders, new LimitOrdersComparer()))
+            if (_orders != null && limitOrders.SequenceEqual(_orders, new LimitOrdersComparer()))
             {
                 _log.Info("New orders are the same as previously placed, don't replace");
                 return;

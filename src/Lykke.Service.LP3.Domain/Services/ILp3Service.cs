@@ -11,7 +11,5 @@ namespace Lykke.Service.LP3.Domain.Services
         Task HandleTimerAsync();
 
         IReadOnlyList<LimitOrder> GetOrders();
-        
-        IReadOnlyList<Level> GetLevels();
     }
 }

@@ -20,6 +20,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
             
             CreateMap<BaseAssetPairSettingsEntity, BaseAssetPairSettings>(MemberList.Destination);
             CreateMap<BaseAssetPairSettings, BaseAssetPairSettingsEntity>(MemberList.Source);
+
+            CreateMap<AdditionalVolumeSettingsEntity, AdditionalVolumeSettings>(MemberList.Destination);
+            CreateMap<AdditionalVolumeSettings, AdditionalVolumeSettingsEntity>(MemberList.Source);
         }
     }
 }

@@ -1,4 +1,3 @@
-using Common;
 using FluentValidation;
 using JetBrains.Annotations;
 using Lykke.Service.LP3.Client.Models.Settings;
@@ -6,19 +5,14 @@ using Lykke.Service.LP3.Client.Models.Settings;
 namespace Lykke.Service.LP3.Validators
 {
     [UsedImplicitly]
-    public class LevelSettingsValidator : AbstractValidator<LevelSettingsModel>
+    public class AdditionalVolumeSettingsValidator : AbstractValidator<AdditionalVolumeSettingsModel>
     {
-        public LevelSettingsValidator()
+        public AdditionalVolumeSettingsValidator()
         {
-            RuleFor(x => x.Name)
-                .Custom((name, context) =>
-                {
-                    if (!name.IsValidPartitionOrRowKey())
-                    {
-                        context.AddFailure("Name must be a valid row key");
-                    }
-                });
-            
+            RuleFor(x => x.Count)
+                .GreaterThanOrEqualTo(0)
+                .WithMessage("Count must be non-negative");
+
             RuleFor(x => x.Delta)
                 .GreaterThan(0)
                 .WithMessage("Delta must be positive");

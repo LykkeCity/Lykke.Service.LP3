@@ -21,5 +21,11 @@ namespace Lykke.Service.LP3.Client
 
         [Put("/api/settings/levels")]
         Task UpdateAsync(LevelSettingsModel model);
+
+        [Get("/api/settings/additionalVolumeSettings")]
+        Task<AdditionalVolumeSettingsModel> GetAdditionalVolumeSettingsAsync();
+
+        [Post("/api/settings/additionalVolumeSettings")]
+        Task UpdateAdditionalVolumeSettingsAsync(AdditionalVolumeSettingsModel model);
     }
 }

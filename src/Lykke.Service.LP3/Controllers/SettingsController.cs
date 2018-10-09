@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
-using Common;
 using Lykke.Common.Api.Contract.Responses;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.LP3.Client;
@@ -33,11 +32,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(BaseAssetPairSettingsModel), (int) HttpStatusCode.OK)]
         public async Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync()
         {
-            var baseAssetPairSettings = await _settingsService.GetBaseAssetPairSettings();
-            
-            var model = Mapper.Map<BaseAssetPairSettingsModel>(baseAssetPairSettings);
-
-            return model;
+            return Mapper.Map<BaseAssetPairSettingsModel>(await _settingsService.GetBaseAssetPairSettings());
         }
         
         [HttpPost("baseAssetPair")]
@@ -45,19 +40,14 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task SaveBaseAssetPairSettingsAsync([FromBody] BaseAssetPairSettingsModel model)
         {
-            var settings = Mapper.Map<BaseAssetPairSettings>(model);
-            await _settingsService.SaveBaseAssetPairSettings(settings);
+            await _settingsService.SaveBaseAssetPairSettings(Mapper.Map<BaseAssetPairSettings>(model));
         }
         
         [HttpGet("levels")]
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
         public async Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
         {
-            var levels = _levelsService.GetLevels();
-            
-            var model = Mapper.Map<IReadOnlyList<LevelSettingsModel>>(levels);
-
-            return model;
+            return Mapper.Map<IReadOnlyList<LevelSettingsModel>>(_levelsService.GetLevels());
         }
         
         [HttpPost("levels")]
@@ -71,9 +61,7 @@ namespace Lykke.Service.LP3.Controllers
                 throw new ValidationApiException($"A level with name {model.Name} already exist");
             }
 
-            var level = Mapper.Map<Level>(model);
-
-            await _levelsService.AddAsync(level);
+            await _levelsService.AddAsync(Mapper.Map<Level>(model));
         }
 
         [HttpDelete("levels/{name}")]
@@ -97,6 +85,21 @@ namespace Lykke.Service.LP3.Controllers
             }
 
             await _levelsService.UpdateAsync(model.Name, model.Delta, model.Volume);
+        }
+
+        [HttpGet("additionalVolumeSettings")]
+        [ProducesResponseType(typeof(AdditionalVolumeSettingsModel), (int) HttpStatusCode.OK)]
+        public async Task<AdditionalVolumeSettingsModel> GetAdditionalVolumeSettingsAsync()
+        {
+            return Mapper.Map<AdditionalVolumeSettingsModel>(await _settingsService.GetAdditionalVolumeSettingsAsync());
+        }
+
+        [HttpPost("additionalVolumeSettings")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task UpdateAdditionalVolumeSettingsAsync([FromBody] AdditionalVolumeSettingsModel model)
+        {
+            await _settingsService.UpdateAdditionalVolumeSettingsAsync(Mapper.Map<AdditionalVolumeSettings>(model));
         }
     }
 }

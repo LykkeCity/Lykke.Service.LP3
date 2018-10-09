@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Logs;
@@ -44,10 +45,15 @@ namespace Lykke.Service.LP3.Tests
             var settingsServiceMock = new Mock<ISettingsService>();
             settingsServiceMock.Setup(x => x.GetBaseAssetPairSettings())
                 .ReturnsAsync(new BaseAssetPairSettings{ AssetPairId = "LKKCHF" });
+
+            var additionalVolumeServiceMock = new Mock<IAdditionalVolumeService>();
+            additionalVolumeServiceMock.Setup(x => x.GetOrdersAsync(It.IsAny<IEnumerable<LimitOrder>>()))
+                .ReturnsAsync(Enumerable.Empty<LimitOrder>());
             
             var trader = new Lp3Service(EmptyLogFactory.Instance, 
                 settingsServiceMock.Object,
                 levelsService,
+                additionalVolumeServiceMock.Object,
                 initialPriceServiceMock.Object,
                 Mock.Of<ILykkeExchange>(),
                 assetsServiceMock.Object);

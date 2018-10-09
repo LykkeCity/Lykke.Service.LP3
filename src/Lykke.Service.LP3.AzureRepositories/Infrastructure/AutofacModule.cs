@@ -36,6 +36,12 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
                         settingsTableName, container.Resolve<ILogFactory>())))
                 .As<IBaseAssetPairSettingsRepository>()
                 .SingleInstance();
+            
+            builder.Register(container => new AdditionalVolumeSettingsRepository(
+                    AzureTableStorage<AdditionalVolumeSettingsEntity>.Create(_connectionString,
+                        settingsTableName, container.Resolve<ILogFactory>())))
+                .As<IAdditionalVolumeSettingsRepository>()
+                .SingleInstance();
         }
     }
 }

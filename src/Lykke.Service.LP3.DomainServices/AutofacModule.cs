@@ -44,6 +44,10 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<IStartable>()
                 .SingleInstance()
                 .AutoActivate();
+
+            builder.RegisterType<AdditionalVolumeService>()
+                .As<IAdditionalVolumeService>()
+                .SingleInstance();
         }
     }
 }

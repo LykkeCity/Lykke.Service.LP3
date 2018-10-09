@@ -20,6 +20,7 @@ namespace Lykke.Service.LP3.DomainServices
     {
         private readonly ISettingsService _settingsService;
         private readonly ILevelsService _levelsService;
+        private readonly IAdditionalVolumeService _additionalVolumeService;
         private readonly IInitialPriceService _initialPriceService;
         private readonly ILykkeExchange _lykkeExchange;
         private readonly IAssetPairsReadModelRepository _assetsService;
@@ -38,12 +39,14 @@ namespace Lykke.Service.LP3.DomainServices
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
             ILevelsService levelsService,
+            IAdditionalVolumeService additionalVolumeService,
             IInitialPriceService initialPriceService,
             ILykkeExchange lykkeExchange,
             IAssetPairsReadModelRepository assetsService)
         {
             _settingsService = settingsService;
             _levelsService = levelsService;
+            _additionalVolumeService = additionalVolumeService;
             _initialPriceService = initialPriceService;
             _lykkeExchange = lykkeExchange;
             _assetsService = assetsService;
@@ -239,7 +242,10 @@ namespace Lykke.Service.LP3.DomainServices
         {
             try
             {
-                _orders = _levelsService.GetOrders().ToList();
+                var levelOrders = _levelsService.GetOrders().ToList();
+                var additionalOrders = await _additionalVolumeService.GetOrdersAsync(levelOrders);
+
+                _orders = levelOrders.Union(additionalOrders).ToList();
 
                 await _lykkeExchange.ApplyAsync(_assetPair, _orders);
             }

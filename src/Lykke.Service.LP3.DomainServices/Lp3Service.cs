@@ -60,8 +60,6 @@ namespace Lykke.Service.LP3.DomainServices
 
         private async Task StartAsync()
         {
-            return; ///// УБРАТЬ!!!!!!
-            
             var initialPrice = await _initialPriceService.GetAsync();
             if (initialPrice == null)
             {

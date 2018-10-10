@@ -6,24 +6,22 @@ using Lykke.Common.Log;
 using Lykke.MatchingEngine.ExchangeModels;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
+using Lykke.Service.LP3.Settings;
 
 namespace Lykke.Service.LP3.RabbitMq.Subscribers
 {
     public class LykkeOrderBookSubscriber : IStartable, IStopable
     {
         private readonly ILogFactory _logFactory;
-        private readonly string _connectionString;
-        private readonly string _exchangeName;
+        private readonly RabbitMqSettings _settings;
         private RabbitMqSubscriber<OrderBook> _subscriber;
 
         public LykkeOrderBookSubscriber(
             ILogFactory logFactory,
-            string connectionString,
-            string exchangeName)
+            RabbitMqSettings settings)
         {
             _logFactory = logFactory;
-            _connectionString = connectionString;
-            _exchangeName = exchangeName;
+            _settings = settings;
         }
 
         public void Start()
@@ -32,7 +30,7 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
             // about RabbitMq subscriber configuration
 
             var settings = RabbitMqSubscriptionSettings
-                .ForSubscriber(_connectionString, _exchangeName, "lp3");
+                .ForSubscriber(_settings.ConnectionString, _settings.ExchangeName, "lp3");
 
             _subscriber = new RabbitMqSubscriber<OrderBook>(
                     _logFactory,

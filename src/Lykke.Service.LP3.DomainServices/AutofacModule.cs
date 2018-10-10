@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Autofac;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Services;
@@ -8,10 +9,12 @@ namespace Lykke.Service.LP3.DomainServices
     public class AutofacModule : Module
     {
         private readonly string _walletId;
+        private readonly IEnumerable<string> _availableExternalExchanges;
 
-        public AutofacModule(string walletId)
+        public AutofacModule(string walletId, IEnumerable<string> availableExternalExchanges)
         {
             _walletId = walletId;
+            _availableExternalExchanges = availableExternalExchanges;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -19,6 +22,7 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<SettingsService>()
                 .As<ISettingsService>()
                 .WithParameter(new NamedParameter("walletId", _walletId))
+                .WithParameter(TypedParameter.From(_availableExternalExchanges))
                 .SingleInstance();
 
             builder.RegisterType<LykkeExchange>()

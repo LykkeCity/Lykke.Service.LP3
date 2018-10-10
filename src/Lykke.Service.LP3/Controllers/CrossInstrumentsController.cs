@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
+using Common;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.CrossInstruments;
@@ -15,10 +18,13 @@ namespace Lykke.Service.LP3.Controllers
     public class CrossInstrumentsController : Controller, ICrossInstrumentsApi
     {
         private readonly ICrossInstrumentService _crossInstrumentService;
-        
-        public CrossInstrumentsController(ICrossInstrumentService crossInstrumentService)
+        private readonly ISettingsService _settingsService;
+
+        public CrossInstrumentsController(ICrossInstrumentService crossInstrumentService,
+            ISettingsService settingsService)
         {
             _crossInstrumentService = crossInstrumentService;
+            _settingsService = settingsService;
         }
 
         [HttpGet]
@@ -35,6 +41,13 @@ namespace Lykke.Service.LP3.Controllers
             if (await _crossInstrumentService.GetAsync(model.Exchange, model.AssetPairId) != null)
             {
                 throw new ValidationApiException($"A cross instrument {model.AssetPairId}@{model.Exchange} already exists");
+            }
+
+            if (!_settingsService.GetAvailableExternalExchanges().Any(x =>
+                string.Equals(x, model.Exchange, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"For adding cross instrument on {model.Exchange} exchange " +
+                                                 "it's needed to add the exchange adapter in the service global settings");
             }
             
             var crossInstrument = Mapper.Map<CrossInstrument>(model);

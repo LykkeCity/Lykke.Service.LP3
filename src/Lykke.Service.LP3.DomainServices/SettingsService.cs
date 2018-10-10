@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Common;
 using Common.Log;
@@ -13,22 +15,30 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly string _walletId;
         private readonly IBaseAssetPairSettingsRepository _baseAssetPairSettingsRepository;
         private readonly IAdditionalVolumeSettingsRepository _additionalVolumeSettingsRepository;
+        private readonly List<string> _availableExternalExchanges;
         private readonly ILog _log;
 
         public SettingsService(string walletId,
             ILogFactory logFactory,
             IBaseAssetPairSettingsRepository baseAssetPairSettingsRepository,
-            IAdditionalVolumeSettingsRepository additionalVolumeSettingsRepository)
+            IAdditionalVolumeSettingsRepository additionalVolumeSettingsRepository,
+            IEnumerable<string> availableExternalExchanges)
         {
             _walletId = walletId;
             _baseAssetPairSettingsRepository = baseAssetPairSettingsRepository;
             _additionalVolumeSettingsRepository = additionalVolumeSettingsRepository;
+            _availableExternalExchanges = availableExternalExchanges?.ToList() ?? new List<string>();
             _log = logFactory.CreateLog(this);
         }
 
-        public Task<string> GetWalletIdAsync()
+        public string GetWalletId()
         {
-            return Task.FromResult(_walletId);
+            return _walletId;
+        }
+
+        public IReadOnlyList<string> GetAvailableExternalExchanges()
+        {
+            return _availableExternalExchanges;
         }
 
         public Task<BaseAssetPairSettings> GetBaseAssetPairSettings()

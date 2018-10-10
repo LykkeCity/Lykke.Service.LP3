@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Linq;
+using System.Net;
 using Autofac;
 using Common;
 using Lykke.Sdk;
@@ -25,7 +26,9 @@ namespace Lykke.Service.LP3.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(new DomainServices.AutofacModule(_appSettings.CurrentValue.LP3Service.WalletId));
+            builder.RegisterModule(new DomainServices.AutofacModule(
+                _appSettings.CurrentValue.LP3Service.WalletId,
+                _appSettings.CurrentValue.LP3Service.ExternalExchanges?.Select(x => x.Name)));
 
             builder.RegisterModule(new AutofacModule(_appSettings.Nested(x => x.LP3Service.Db.DataConnectionString)));
             
@@ -74,14 +77,22 @@ namespace Lykke.Service.LP3.Modules
             builder.RegisterType<LykkeLimitOrdersSubscriber>()
                 .As<IStartable>()
                 .SingleInstance()
-                .WithParameter("connectionString", _appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrders.ConnectionString)
-                .WithParameter("exchangeName", _appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrders.ExchangeName);
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrders));
             
             builder.RegisterType<LykkeOrderBookSubscriber>()
                 .As<IStartable>()
                 .SingleInstance()
-                .WithParameter("connectionString", _appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrderBooks.ConnectionString)
-                .WithParameter("exchangeName", _appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrderBooks.ExchangeName);
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrderBooks));
+
+            foreach (var externalExchangeSettings in _appSettings.CurrentValue.LP3Service.ExternalExchanges)
+            {
+                builder.RegisterType<ExternalOrderBookSubscriber>()
+                    .AsSelf()
+                    .WithParameter(TypedParameter.From(externalExchangeSettings.Name))
+                    .WithParameter(TypedParameter.From(externalExchangeSettings.Rabbit))
+                    .Named<ExternalOrderBookSubscriber>(externalExchangeSettings.Name)
+                    .SingleInstance();
+            }
         }
         
         private void RegisterPeriodicalHandlers(ContainerBuilder builder)

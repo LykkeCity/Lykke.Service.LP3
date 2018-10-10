@@ -11,5 +11,7 @@ namespace Lykke.Service.LP3.Settings
         public string WalletId { get; set; }
         
         public RabbitSettingsGroup Rabbit { get; set; }
+        
+        public ExternalExchangeSettings[] ExternalExchanges { get; set; }
     }
 }

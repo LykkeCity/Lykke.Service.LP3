@@ -48,7 +48,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 if (limitOrders.Orders == null || limitOrders.Orders.Count == 0)
                     return;
 
-                string walletId = await _settingsService.GetWalletIdAsync();
+                string walletId = _settingsService.GetWalletId();
 
                 if (string.IsNullOrEmpty(walletId))
                     return;

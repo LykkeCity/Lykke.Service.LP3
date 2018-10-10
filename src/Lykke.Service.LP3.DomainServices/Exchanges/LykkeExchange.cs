@@ -41,7 +41,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 return;
             }
             
-            string walletId = await _settingsService.GetWalletIdAsync();
+            string walletId = _settingsService.GetWalletId();
 
             if (string.IsNullOrEmpty(walletId))
                 throw new Exception("WalletId is not set");

@@ -1,5 +1,6 @@
 using AutoMapper;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.CrossInstruments;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
 
@@ -27,6 +28,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
             
             CreateMap<TradeEntity, Trade>(MemberList.Destination);
             CreateMap<Trade, TradeEntity>(MemberList.Source);
+            
+            CreateMap<CrossInstrumentEntity, CrossInstrument>(MemberList.Destination);
+            CreateMap<CrossInstrument, CrossInstrumentEntity>(MemberList.Source);
         }
     }
 }

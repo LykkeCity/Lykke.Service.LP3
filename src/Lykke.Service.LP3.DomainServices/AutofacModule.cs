@@ -48,6 +48,10 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<AdditionalVolumeService>()
                 .As<IAdditionalVolumeService>()
                 .SingleInstance();
+
+            builder.RegisterType<CrossInstrumentService>()
+                .As<ICrossInstrumentService>()
+                .SingleInstance();
         }
     }
 }

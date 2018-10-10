@@ -60,6 +60,8 @@ namespace Lykke.Service.LP3.DomainServices
 
         private async Task StartAsync()
         {
+            return; ///// УБРАТЬ!!!!!!
+            
             var initialPrice = await _initialPriceService.GetAsync();
             if (initialPrice == null)
             {
@@ -129,6 +131,12 @@ namespace Lykke.Service.LP3.DomainServices
         private void HandleTrade(Trade trade)
         {
             _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");
+
+            if (!_levelsService.GetLevels().Any())
+            {
+                _log.Error("Trade is received but there aren't any levels");
+                return;
+            }
 
             var volume = trade.Volume;
 

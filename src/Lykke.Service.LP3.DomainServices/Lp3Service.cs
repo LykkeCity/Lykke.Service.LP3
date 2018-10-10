@@ -34,7 +34,6 @@ namespace Lykke.Service.LP3.DomainServices
         
         private decimal _inventory = 0;
         private decimal _oppositeInventory = 0;
-        private decimal _lastPrice;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
@@ -93,7 +92,10 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await SynchronizeAsync(async () =>
             {
-                await _initialPriceService.AddOrUpdateAsync(trades.Last().Price);
+                var newInitialPrice = trades.Last().Price;
+                await _initialPriceService.AddOrUpdateAsync(newInitialPrice);
+                _log.Info("InitialPrice is updated", 
+                    context: $"Trades: [{string.Join(", ", trades.Select(x => x.ToJson()))}], new InitialPrice: {newInitialPrice}");
                 
                 foreach (var trade in trades)
                 {
@@ -128,7 +130,6 @@ namespace Lykke.Service.LP3.DomainServices
         {
             _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");
 
-            _lastPrice = trade.Price;
             var volume = trade.Volume;
 
             if (trade.Type == TradeType.Sell)
@@ -155,7 +156,7 @@ namespace Lykke.Service.LP3.DomainServices
                     volume -= level.VolumeSell;
 
                     _inventory += level.VolumeSell;
-                    _oppositeInventory -= level.VolumeSell * level.Sell;
+                    _oppositeInventory -= level.VolumeSell * level.Sell; // TODO: get rounded price from trade ? 
 
                     level.Inventory += level.VolumeSell;
                     level.OppositeInventory -= level.VolumeSell * level.Sell;

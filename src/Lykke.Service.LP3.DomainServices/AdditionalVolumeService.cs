@@ -46,18 +46,18 @@ namespace Lykke.Service.LP3.DomainServices
             var asks = currentOrders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var bids = currentOrders.Where(x => x.TradeType == TradeType.Buy).OrderBy(x => x.Price).ToList();
 
-            var bestBid = bids.LastOrDefault();
-            var bestAsk = asks.FirstOrDefault();
-            
-            var worstBid = bids.FirstOrDefault();
-            var worstAsk = asks.LastOrDefault();
-
-            if (worstAsk == null && worstBid == null)
+            if (!asks.Any() && !bids.Any())
             {
                 _log.Info("No current orders to create additional orders");
                 ask = bid = 0;
                 return false;
             }
+            
+            var bestBid = bids.LastOrDefault();
+            var bestAsk = asks.FirstOrDefault();
+            
+            var worstBid = bids.FirstOrDefault();
+            var worstAsk = asks.LastOrDefault();
 
             bid = worstBid?.Price ?? bestAsk.Price;
             ask = worstAsk?.Price ?? bestBid.Price;

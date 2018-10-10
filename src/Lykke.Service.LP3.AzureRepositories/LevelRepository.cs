@@ -30,17 +30,6 @@ namespace Lykke.Service.LP3.AzureRepositories
             return _storage.DeleteAsync(GetPartitionKey(), GetRowKey(name));
         }
 
-        public async Task UpdateSettingsAsync(string name, decimal delta, decimal volume)
-        {
-            var entity = await _storage.GetDataAsync(GetPartitionKey(), GetRowKey(name));
-            if (entity != null)
-            {
-                entity.Delta = delta;
-                entity.Volume = volume;
-                await _storage.InsertOrMergeAsync(entity);
-            }
-        }
-
         public async Task<IReadOnlyList<Level>> GetLevels()
         {
             var data = await _storage.GetDataAsync(GetPartitionKey());

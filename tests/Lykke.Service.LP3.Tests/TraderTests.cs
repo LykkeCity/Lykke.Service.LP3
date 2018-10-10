@@ -31,7 +31,7 @@ namespace Lykke.Service.LP3.Tests
             var levelRepositoryMock = new Mock<ILevelRepository>();
             levelRepositoryMock.Setup(x => x.GetLevels()).ReturnsAsync(levels);
             
-            var levelsService = new LevelsService(levelRepositoryMock.Object);
+            var levelsService = new LevelsService(EmptyLogFactory.Instance, levelRepositoryMock.Object);
             levelsService.Start();
 
             var initialPriceServiceMock = new Mock<IInitialPriceService>();

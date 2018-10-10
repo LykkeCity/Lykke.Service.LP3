@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
+using Common;
+using Common.Log;
+using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
@@ -16,10 +19,14 @@ namespace Lykke.Service.LP3.DomainServices
 
         private List<Level> _levels;
         private decimal _lastPrice;
+        private readonly ILog _log;
 
-        public LevelsService(ILevelRepository levelRepository)
+        public LevelsService(
+            ILogFactory logFactory,
+            ILevelRepository levelRepository)
         {
             _levelRepository = levelRepository;
+            _log = logFactory.CreateLog(this);
         }
 
         public async Task AddAsync(Level level)
@@ -29,6 +36,9 @@ namespace Lykke.Service.LP3.DomainServices
             await _levelRepository.AddAsync(level);
             
             _levels.Add(level);
+            
+            _log.Info("New level was added", 
+                context: $"Added level: {level.ToJson()}, {GetCurrentLevelsLogString()}");
         }
 
         public async Task DeleteAsync(string name)
@@ -38,14 +48,26 @@ namespace Lykke.Service.LP3.DomainServices
             var level = FindLevelByName(name);
 
             _levels.Remove(level);
+            
+            _log.Info("Level was deleted", 
+                context: $"Deleted level: {level.ToJson()}, {GetCurrentLevelsLogString()}");
         }
 
         public async Task UpdateAsync(string name, decimal delta, decimal volume)
         {
-            await _levelRepository.UpdateSettingsAsync(name, delta, volume);
-
             var level = FindLevelByName(name);
-            level?.UpdateSettings(delta, volume);
+            if (level == null)
+            {
+                _log.Warning($"Trying to update settings of non-existing level {name}", context: GetCurrentLevelsLogString());
+                return;
+            }
+            
+            level.UpdateSettings(delta, volume);
+
+            await SaveStatesAsync();
+            
+            _log.Info("Level was updated", 
+                context: $"Updated level: {level.ToJson()}, {GetCurrentLevelsLogString()}");
         }
 
         public IReadOnlyList<Level> GetLevels()
@@ -78,6 +100,9 @@ namespace Lykke.Service.LP3.DomainServices
             if (_levels == null)
             {
                 _levels = (await _levelRepository.GetLevels()).ToList();
+                
+                _log.Info("Levels are populated from repository", 
+                    context: $"Current levels: [{string.Join(", ", _levels.Select(x => x.ToJson()))}]");
             }
         }
 
@@ -85,13 +110,18 @@ namespace Lykke.Service.LP3.DomainServices
         {
             if (_levels != null)
             {
-                await _levelRepository.SaveStatesAsync(_levels);    
+                await _levelRepository.SaveStatesAsync(_levels);
             }
         }
 
         public void Start()
         {
             PopulateLevels().GetAwaiter().GetResult();
+        }
+
+        private string GetCurrentLevelsLogString()
+        {
+            return $"current levels: [{string.Join(", ", _levels.Select(x => x.ToJson()))}]";
         }
     }
 }

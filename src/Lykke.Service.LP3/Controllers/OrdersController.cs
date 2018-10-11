@@ -28,5 +28,16 @@ namespace Lykke.Service.LP3.Controllers
 
             return models;
         }
+        
+        [HttpGet("{assetPairId}")]
+        [ProducesResponseType(typeof(IReadOnlyList<LimitOrderModel>), (int) HttpStatusCode.OK)]
+        public IReadOnlyList<LimitOrderModel> Get(string assetPairId)
+        {
+            var orders = _lp3Service.GetOrders(assetPairId);
+
+            var models = Mapper.Map<List<LimitOrderModel>>(orders);
+
+            return models;
+        }
     }
 }

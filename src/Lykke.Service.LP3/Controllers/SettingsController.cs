@@ -27,20 +27,34 @@ namespace Lykke.Service.LP3.Controllers
             _settingsService = settingsService;
             _levelsService = levelsService;
         }
+
+        [HttpGet("walletId")]
+        [ProducesResponseType(typeof(string), (int) HttpStatusCode.OK)]
+        public string GetWalletId()
+        {
+            return _settingsService.GetWalletId();
+        }
         
         [HttpGet("baseAssetPair")]
-        [ProducesResponseType(typeof(AssetPairSettingsModel), (int) HttpStatusCode.OK)]
-        public async Task<AssetPairSettingsModel> GetBaseAssetPairSettingsAsync()
+        [ProducesResponseType(typeof(BaseAssetPairSettingsModel), (int) HttpStatusCode.OK)]
+        public async Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync()
         {
-            return Mapper.Map<AssetPairSettingsModel>(await _settingsService.GetBaseAssetPairSettings());
+            return Mapper.Map<BaseAssetPairSettingsModel>(await _settingsService.GetBaseAssetPairSettingsAsync());
         }
         
         [HttpPost("baseAssetPair")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
-        public async Task SaveBaseAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
+        public async Task SaveBaseAssetPairSettingsAsync([FromBody] BaseAssetPairSettingsModel model)
         {
-            await _settingsService.SaveBaseAssetPairSettings(Mapper.Map<AssetPairSettings>(model));
+            await _settingsService.SaveBaseAssetPairSettingsAsync(Mapper.Map<AssetPairSettings>(model));
+        }
+
+        [HttpDelete("baseAssetPair")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        public async Task DeleteBaseAssetPairSettingsAsync()
+        {
+            await _settingsService.DeleteBaseAssetPairSettingsAsync();
         }
         
         [HttpGet("dependentAssetPairs")]
@@ -55,6 +69,15 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task UpdateDependentAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
         {
+            if (!string.Equals(model.CrossInstrumentSource, Consts.LykkeExchangeName, StringComparison.InvariantCultureIgnoreCase) &&
+                !_settingsService.GetAvailableExternalExchanges().Any(x =>
+                    string.Equals(x, model.CrossInstrumentSource, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"For adding cross instrument on {model.CrossInstrumentSource} exchange " +
+                                                 "it's needed to add the exchange adapter in the service global settings");
+            }
+            
+            
             await _settingsService.UpdateDependentAssetPairSettingsAsync(Mapper.Map<AssetPairSettings>(model));
         }
         
@@ -67,9 +90,9 @@ namespace Lykke.Service.LP3.Controllers
         
         [HttpGet("levels")]
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
-        public async Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
+        public Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
         {
-            return Mapper.Map<IReadOnlyList<LevelSettingsModel>>(_levelsService.GetLevels());
+            return Task.FromResult(Mapper.Map<IReadOnlyList<LevelSettingsModel>>(_levelsService.GetLevels()));
         }
         
         [HttpPost("levels")]

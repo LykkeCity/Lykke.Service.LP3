@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -7,8 +8,6 @@ using Autofac;
 using Common;
 using Common.Log;
 using Lykke.Common.Log;
-using Lykke.Service.Assets.Client.Models.v3;
-using Lykke.Service.Assets.Client.ReadModels;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
@@ -23,18 +22,18 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly IAdditionalVolumeService _additionalVolumeService;
         private readonly IInitialPriceService _initialPriceService;
         private readonly ILykkeExchange _lykkeExchange;
-        private readonly IAssetPairsReadModelRepository _assetsService;
         private readonly IOrdersConverter _ordersConverter;
         private readonly ILog _log;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private bool _started;
 
-        private List<LimitOrder> _orders = new List<LimitOrder>();
-        private AssetPair _assetPair;
+        private readonly ConcurrentDictionary<string, List<LimitOrder>> _ordersByAssetPairs = 
+            new ConcurrentDictionary<string, List<LimitOrder>>();
         
         private decimal _inventory = 0;
         private decimal _oppositeInventory = 0;
+        private string _baseAssetPairId;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
@@ -42,7 +41,6 @@ namespace Lykke.Service.LP3.DomainServices
             IAdditionalVolumeService additionalVolumeService,
             IInitialPriceService initialPriceService,
             ILykkeExchange lykkeExchange,
-            IAssetPairsReadModelRepository assetsService,
             IOrdersConverter ordersConverter)
         {
             _settingsService = settingsService;
@@ -50,7 +48,6 @@ namespace Lykke.Service.LP3.DomainServices
             _additionalVolumeService = additionalVolumeService;
             _initialPriceService = initialPriceService;
             _lykkeExchange = lykkeExchange;
-            _assetsService = assetsService;
             _ordersConverter = ordersConverter;
             _log = logFactory.CreateLog(this);
         }
@@ -70,17 +67,10 @@ namespace Lykke.Service.LP3.DomainServices
                 return;
             }
         
-            var baseAssetPairId = (await _settingsService.GetBaseAssetPairSettings())?.AssetPairId;
-            if (baseAssetPairId == null)
+            _baseAssetPairId = (await _settingsService.GetBaseAssetPairSettingsAsync())?.AssetPairId;
+            if (_baseAssetPairId == null)
             {
                 _log.Info("No baseAssetPairId to start algorithm, waiting for adding it via API");
-                return;
-            }
-
-            _assetPair = _assetsService.TryGet(baseAssetPairId);
-            if (_assetPair == null)
-            {
-                _log.Error($"AssetService returned null for {baseAssetPairId}");
                 return;
             }
 
@@ -126,7 +116,12 @@ namespace Lykke.Service.LP3.DomainServices
 
         public IReadOnlyList<LimitOrder> GetOrders()
         {
-            return _orders;
+            return GetOrders(_baseAssetPairId);
+        }
+
+        public IReadOnlyList<LimitOrder> GetOrders(string assetPairId)
+        {
+            return _ordersByAssetPairs.TryGetValue(assetPairId, out var orders) ? orders : new List<LimitOrder>();
         }
         
         private void HandleTrade(Trade trade)
@@ -255,17 +250,33 @@ namespace Lykke.Service.LP3.DomainServices
                 var levelOrders = _levelsService.GetOrders().ToList();
                 var additionalOrders = await _additionalVolumeService.GetOrdersAsync(levelOrders);
 
-                _orders = levelOrders.Union(additionalOrders).ToList();
+                _ordersByAssetPairs[_baseAssetPairId] = levelOrders.Union(additionalOrders).ToList();
+                
+                if (await _settingsService.GetBaseAssetPairSettingsAsync() == null)
+                {
+                    _log.Info("Base pair deletion is detected, remove all orders");
+                    _ordersByAssetPairs[_baseAssetPairId] = new List<LimitOrder>();
+                    _started = false;
+                }
 
-                await _lykkeExchange.ApplyAsync(_assetPair, _orders);
+                var dependentPairsSettings = await _settingsService.GetDependentAssetPairsSettingsAsync();
+                foreach (var pairSettings in dependentPairsSettings)
+                {
+                    _ordersByAssetPairs[pairSettings.AssetPairId] = _ordersByAssetPairs[_baseAssetPairId]
+                        .Select(x => _ordersConverter.ConvertAsync(x, pairSettings).GetAwaiter().GetResult()).ToList();
+                }
 
-//                var dependentPairs = await _settingsService.GetDependentAssetPairsSettingsAsync();
-//                foreach (var pair in dependentPairs)
-//                {
-//                    var ordersForPair = _orders.Select(x => _ordersConverter.Convert(x, pair)).ToList();
-//                    var assetPair = _assetsService.TryGet(pair.AssetPairId);
-//                    await _lykkeExchange.ApplyAsync(assetPair, ordersForPair);
-//                }
+                foreach (var ordersByAssetPair in _ordersByAssetPairs)
+                {
+                    try
+                    {
+                        await _lykkeExchange.ApplyAsync(ordersByAssetPair.Key, ordersByAssetPair.Value);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e, $"Error on placing orders for {ordersByAssetPair.Key}");
+                    }
+                }
             }
             catch (Exception e)
             {

@@ -8,5 +8,8 @@ namespace Lykke.Service.LP3.Client
     {
         [Get("/api/orders")]
         IReadOnlyList<LimitOrderModel> GetAll();
+        
+        [Get("/api/orders/{assetPairId}")]
+        IReadOnlyList<LimitOrderModel> Get(string assetPairId);
     }
 }

@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Logs;
-using Lykke.Service.Assets.Client.Models.v3;
-using Lykke.Service.Assets.Client.ReadModels;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
@@ -38,12 +36,8 @@ namespace Lykke.Service.LP3.Tests
             initialPriceServiceMock.Setup(x => x.GetAsync())
                 .ReturnsAsync(new InitialPrice(1000m));
 
-            var assetsServiceMock = new Mock<IAssetPairsReadModelRepository>();
-            assetsServiceMock.Setup(x => x.TryGet(It.IsAny<string>()))
-                .Returns(new AssetPair());
-
             var settingsServiceMock = new Mock<ISettingsService>();
-            settingsServiceMock.Setup(x => x.GetBaseAssetPairSettings())
+            settingsServiceMock.Setup(x => x.GetBaseAssetPairSettingsAsync())
                 .ReturnsAsync(new AssetPairSettings{ AssetPairId = "LKKCHF" });
 
             var additionalVolumeServiceMock = new Mock<IAdditionalVolumeService>();
@@ -56,7 +50,6 @@ namespace Lykke.Service.LP3.Tests
                 additionalVolumeServiceMock.Object,
                 initialPriceServiceMock.Object,
                 Mock.Of<ILykkeExchange>(),
-                assetsServiceMock.Object,
                 Mock.Of<IOrdersConverter>());
             
             trader.Start();

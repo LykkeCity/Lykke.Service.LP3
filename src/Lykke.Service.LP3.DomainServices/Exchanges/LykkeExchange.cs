@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Lykke.Common.Log;
 using Lykke.MatchingEngine.Connector.Abstractions.Services;
 using Lykke.MatchingEngine.Connector.Models.Api;
 using Lykke.Service.Assets.Client.Models.v3;
+using Lykke.Service.Assets.Client.ReadModels;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
@@ -19,23 +21,26 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
     {
         private readonly IMatchingEngineClient _matchingEngineClient;
         private readonly ISettingsService _settingsService;
+        private readonly IAssetPairsReadModelRepository _assetsService;
         private readonly ILog _log;
 
-        private List<LimitOrder> _orders;
+        private readonly ConcurrentDictionary<string, List<LimitOrder>> _orders = new ConcurrentDictionary<string, List<LimitOrder>>();
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
-            ISettingsService settingsService)
+            ISettingsService settingsService,
+            IAssetPairsReadModelRepository assetsService)
         {
             _matchingEngineClient = matchingEngineClient;
             _settingsService = settingsService;
+            _assetsService = assetsService;
 
             _log = logFactory.CreateLog(this);
         }
         
-        public async Task ApplyAsync(AssetPair assetPair, IReadOnlyList<LimitOrder> limitOrders)
+        public async Task ApplyAsync(string assetPairId, IReadOnlyList<LimitOrder> limitOrders)
         {
-            if (_orders != null && limitOrders.SequenceEqual(_orders, new LimitOrdersComparer()))
+            if (_orders.TryGetValue(assetPairId, out var orders) && orders != null && limitOrders.SequenceEqual(orders, new LimitOrdersComparer()))
             {
                 _log.Info("New orders are the same as previously placed, don't replace");
                 return;
@@ -45,6 +50,12 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
             if (string.IsNullOrEmpty(walletId))
                 throw new Exception("WalletId is not set");
+
+            AssetPair assetPair = _assetsService.TryGetIfEnabled(assetPairId);
+            if (assetPair == null)
+            {
+                throw new Exception($"AssetService have returned null for asset pair {assetPairId}");
+            }
 
             var map = new Dictionary<string, Guid>();
             
@@ -56,7 +67,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 {
                     Id = Guid.NewGuid().ToString("D"),
                     OrderAction = limitOrder.TradeType.ToOrderAction(),
-                    Price = (double) Math.Round(limitOrder.Price, assetPair.Accuracy),
+                    Price = (double) limitOrder.Price.TruncateDecimalPlaces(assetPair.Accuracy, toUpper: limitOrder.TradeType == TradeType.Sell),
                     Volume = (double) Math.Round(Math.Abs(limitOrder.Volume), assetPair.InvertedAccuracy)
                 };
 
@@ -111,7 +122,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 }
             }
 
-            _orders = limitOrders.ToList();
+            _orders[assetPairId] = limitOrders.ToList();
         }
     }
 }

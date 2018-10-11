@@ -6,6 +6,7 @@ using Lykke.Service.LP3.Client.Models.Settings;
 using Lykke.Service.LP3.Client.Models.Trades;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
+using Lykke.Service.LP3.Domain.Settings;
 using ExternalTickPrice = Lykke.Common.ExchangeAdapter.Contracts.TickPrice;
 using DomainTickPrice = Lykke.Service.LP3.Domain.TickPrice;
 
@@ -33,6 +34,9 @@ namespace Lykke.Service.LP3
             CreateMap<ExternalTickPrice, DomainTickPrice>(MemberList.Destination)
                 .ForMember(x => x.DateTime, m => m.MapFrom(x => x.Timestamp))
                 .ForMember(x => x.AssetPair, m => m.MapFrom(x => x.Asset));
+
+            CreateMap<BaseAssetPairSettingsModel, AssetPairSettings>(MemberList.Source);
+            CreateMap<AssetPairSettings, BaseAssetPairSettingsModel>(MemberList.Destination);
         }
     }
 }

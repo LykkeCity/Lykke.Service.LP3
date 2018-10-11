@@ -8,10 +8,26 @@ namespace Lykke.Service.LP3.Client
     public interface ISettingsApi
     {
         [Get("/api/settings/baseAssetPair")]
-        Task<AssetPairSettingsModel> GetBaseAssetPairSettingsAsync();
+        Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync();
         
         [Post("/api/settings/baseAssetPair")]
-        Task SaveBaseAssetPairSettingsAsync(AssetPairSettingsModel model);
+        Task SaveBaseAssetPairSettingsAsync(BaseAssetPairSettingsModel model);
+
+        [Delete("/api/settings/baseAssetPair")]
+        Task DeleteBaseAssetPairSettingsAsync();
+
+        
+        
+        [Get("/api/settings/dependentAssetPairs")]
+        Task<IReadOnlyList<AssetPairSettingsModel>> GetDependentAssetPairSettingsAsync();
+        
+        [Put("/api/settings/dependentAssetPairs")]
+        Task UpdateDependentAssetPairSettingsAsync(AssetPairSettingsModel model);
+        
+        [Delete("/api/settings/dependentAssetPairs")]
+        Task DeleteDependentAssetPairSettingsAsync(string assetPairId);
+        
+        
         
         [Get("/api/settings/levels")]
         Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync();
@@ -24,21 +40,18 @@ namespace Lykke.Service.LP3.Client
 
         [Put("/api/settings/levels")]
         Task UpdateAsync(LevelSettingsModel model);
+        
+        
 
         [Get("/api/settings/additionalVolumeSettings")]
         Task<AdditionalVolumeSettingsModel> GetAdditionalVolumeSettingsAsync();
 
         [Post("/api/settings/additionalVolumeSettings")]
         Task UpdateAdditionalVolumeSettingsAsync(AdditionalVolumeSettingsModel model);
+        
+        
 
-        
-        [Get("/api/settings/dependentAssetPairs")]
-        Task<IReadOnlyList<AssetPairSettingsModel>> GetDependentAssetPairSettingsAsync();
-        
-        [Put("/api/settings/dependentAssetPairs")]
-        Task UpdateDependentAssetPairSettingsAsync(AssetPairSettingsModel model);
-        
-        [Delete("/api/settings/dependentAssetPairs")]
-        Task DeleteDependentAssetPairSettingsAsync(string assetPairId);
+        [Get("/api/settings/walletId")]
+        string GetWalletId();
     }
 }

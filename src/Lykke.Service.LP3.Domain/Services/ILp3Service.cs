@@ -11,5 +11,7 @@ namespace Lykke.Service.LP3.Domain.Services
         Task HandleTimerAsync();
 
         IReadOnlyList<LimitOrder> GetOrders();
+        
+        IReadOnlyList<LimitOrder> GetOrders(string assetPairId);
     }
 }

@@ -10,25 +10,35 @@ namespace Lykke.Service.LP3.DomainServices
     public class CrossRateService : ICrossRateService
     {
         private readonly ILastTickPriceRepository _lastTickPriceRepository;
-        private readonly ICrossInstrumentService _crossInstrumentService;
+        private readonly ISettingsService _settingsService;
 
         public CrossRateService(ILastTickPriceRepository lastTickPriceRepository,
-            ICrossInstrumentService crossInstrumentService)
+            ISettingsService settingsService)
         {
             _lastTickPriceRepository = lastTickPriceRepository;
-            _crossInstrumentService = crossInstrumentService;
+            _settingsService = settingsService;
         }
 
         public async Task HandleAsync(TickPrice tickPrice)
         {
-            var crossInstruments = await _crossInstrumentService.GetAllAsync();
+            var dependentPairs = await _settingsService.GetDependentAssetPairsSettingsAsync();
 
-            if (crossInstruments.Any(x =>
-                string.Equals(x.AssetPairId, tickPrice.AssetPair, StringComparison.InvariantCultureIgnoreCase)
-                && string.Equals(x.Exchange, tickPrice.Source, StringComparison.InvariantCultureIgnoreCase)))
+            if (dependentPairs.Any(x =>
+                string.Equals(x.CrossInstrumentAssetPair, tickPrice.AssetPair, StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(x.CrossInstrumentSource, tickPrice.Source, StringComparison.InvariantCultureIgnoreCase)))
             {
                 await _lastTickPriceRepository.AddOrUpdateAsync(tickPrice);    
             }
+        }
+
+        public async Task<TickPrice> GetLastTickPriceAsync(string source, string assetPair)
+        {
+            var tickPrices = await _lastTickPriceRepository.GetAllAsync();
+
+            return tickPrices.SingleOrDefault(x =>
+                string.Equals(x.Source, source, StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(x.AssetPair, assetPair, StringComparison.InvariantCultureIgnoreCase));
+
         }
     }
 }

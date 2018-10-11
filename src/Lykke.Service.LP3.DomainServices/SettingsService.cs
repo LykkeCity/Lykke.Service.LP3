@@ -41,12 +41,18 @@ namespace Lykke.Service.LP3.DomainServices
             return _availableExternalExchanges;
         }
 
-        public Task<AssetPairSettings> GetBaseAssetPairSettings()
+        public async Task DeleteBaseAssetPairSettingsAsync()
+        {
+            await _assetPairSettingsRepository.DeleteBaseAsync();
+            _log.Info("Base asset pair was deleted");
+        }
+
+        public Task<AssetPairSettings> GetBaseAssetPairSettingsAsync()
         {
             return _assetPairSettingsRepository.GetBaseAsync();
         }
 
-        public async Task SaveBaseAssetPairSettings(AssetPairSettings settings)
+        public async Task SaveBaseAssetPairSettingsAsync(AssetPairSettings settings)
         {
             await _assetPairSettingsRepository.AddOrUpdateBaseAsync(settings);
             _log.Info("Base asset settings were updated", context: $"new settings: {settings.ToJson()}");

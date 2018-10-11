@@ -53,10 +53,6 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<IAdditionalVolumeService>()
                 .SingleInstance();
 
-            builder.RegisterType<CrossInstrumentService>()
-                .As<ICrossInstrumentService>()
-                .SingleInstance();
-
             builder.RegisterType<OrdersConverter>()
                 .As<IOrdersConverter>()
                 .SingleInstance();

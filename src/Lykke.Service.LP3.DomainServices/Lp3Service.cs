@@ -24,6 +24,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly IInitialPriceService _initialPriceService;
         private readonly ILykkeExchange _lykkeExchange;
         private readonly IAssetPairsReadModelRepository _assetsService;
+        private readonly IOrdersConverter _ordersConverter;
         private readonly ILog _log;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
@@ -41,7 +42,8 @@ namespace Lykke.Service.LP3.DomainServices
             IAdditionalVolumeService additionalVolumeService,
             IInitialPriceService initialPriceService,
             ILykkeExchange lykkeExchange,
-            IAssetPairsReadModelRepository assetsService)
+            IAssetPairsReadModelRepository assetsService,
+            IOrdersConverter ordersConverter)
         {
             _settingsService = settingsService;
             _levelsService = levelsService;
@@ -49,6 +51,7 @@ namespace Lykke.Service.LP3.DomainServices
             _initialPriceService = initialPriceService;
             _lykkeExchange = lykkeExchange;
             _assetsService = assetsService;
+            _ordersConverter = ordersConverter;
             _log = logFactory.CreateLog(this);
         }
         
@@ -255,6 +258,14 @@ namespace Lykke.Service.LP3.DomainServices
                 _orders = levelOrders.Union(additionalOrders).ToList();
 
                 await _lykkeExchange.ApplyAsync(_assetPair, _orders);
+
+//                var dependentPairs = await _settingsService.GetDependentAssetPairsSettingsAsync();
+//                foreach (var pair in dependentPairs)
+//                {
+//                    var ordersForPair = _orders.Select(x => _ordersConverter.Convert(x, pair)).ToList();
+//                    var assetPair = _assetsService.TryGet(pair.AssetPairId);
+//                    await _lykkeExchange.ApplyAsync(assetPair, ordersForPair);
+//                }
             }
             catch (Exception e)
             {

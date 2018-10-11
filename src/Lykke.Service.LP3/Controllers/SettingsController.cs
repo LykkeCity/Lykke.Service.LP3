@@ -29,18 +29,40 @@ namespace Lykke.Service.LP3.Controllers
         }
         
         [HttpGet("baseAssetPair")]
-        [ProducesResponseType(typeof(BaseAssetPairSettingsModel), (int) HttpStatusCode.OK)]
-        public async Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync()
+        [ProducesResponseType(typeof(AssetPairSettingsModel), (int) HttpStatusCode.OK)]
+        public async Task<AssetPairSettingsModel> GetBaseAssetPairSettingsAsync()
         {
-            return Mapper.Map<BaseAssetPairSettingsModel>(await _settingsService.GetBaseAssetPairSettings());
+            return Mapper.Map<AssetPairSettingsModel>(await _settingsService.GetBaseAssetPairSettings());
         }
         
         [HttpPost("baseAssetPair")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
-        public async Task SaveBaseAssetPairSettingsAsync([FromBody] BaseAssetPairSettingsModel model)
+        public async Task SaveBaseAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
         {
-            await _settingsService.SaveBaseAssetPairSettings(Mapper.Map<BaseAssetPairSettings>(model));
+            await _settingsService.SaveBaseAssetPairSettings(Mapper.Map<AssetPairSettings>(model));
+        }
+        
+        [HttpGet("dependentAssetPairs")]
+        [ProducesResponseType(typeof(IReadOnlyList<AssetPairSettingsModel>), (int) HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<AssetPairSettingsModel>> GetDependentAssetPairSettingsAsync()
+        {
+            return Mapper.Map<List<AssetPairSettingsModel>>(await _settingsService.GetDependentAssetPairsSettingsAsync());
+        }
+        
+        [HttpPost("dependentAssetPairs")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task UpdateDependentAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
+        {
+            await _settingsService.UpdateDependentAssetPairSettingsAsync(Mapper.Map<AssetPairSettings>(model));
+        }
+        
+        [HttpDelete("dependentAssetPairs")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        public async Task DeleteDependentAssetPairSettingsAsync(string assetPairId)
+        {
+            await _settingsService.DeleteDependentAssetPairSettingsAsync(assetPairId);
         }
         
         [HttpGet("levels")]

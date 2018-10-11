@@ -20,8 +20,8 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
                 .ForSourceMember(x => x.Buy, m => m.Ignore())
                 .ForMember(x => x.Volume, m => m.MapFrom(x => x.OriginalVolume));
             
-            CreateMap<BaseAssetPairSettingsEntity, BaseAssetPairSettings>(MemberList.Destination);
-            CreateMap<BaseAssetPairSettings, BaseAssetPairSettingsEntity>(MemberList.Source);
+            CreateMap<AssetPairSettingsEntity, AssetPairSettings>(MemberList.Destination);
+            CreateMap<AssetPairSettings, AssetPairSettingsEntity>(MemberList.Source);
 
             CreateMap<AdditionalVolumeSettingsEntity, AdditionalVolumeSettings>(MemberList.Destination);
             CreateMap<AdditionalVolumeSettings, AdditionalVolumeSettingsEntity>(MemberList.Source);

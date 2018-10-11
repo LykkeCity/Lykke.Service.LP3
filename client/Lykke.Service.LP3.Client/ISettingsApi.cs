@@ -8,7 +8,10 @@ namespace Lykke.Service.LP3.Client
     public interface ISettingsApi
     {
         [Get("/api/settings/baseAssetPair")]
-        Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync();
+        Task<AssetPairSettingsModel> GetBaseAssetPairSettingsAsync();
+        
+        [Post("/api/settings/baseAssetPair")]
+        Task SaveBaseAssetPairSettingsAsync(AssetPairSettingsModel model);
         
         [Get("/api/settings/levels")]
         Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync();
@@ -27,5 +30,15 @@ namespace Lykke.Service.LP3.Client
 
         [Post("/api/settings/additionalVolumeSettings")]
         Task UpdateAdditionalVolumeSettingsAsync(AdditionalVolumeSettingsModel model);
+
+        
+        [Get("/api/settings/dependentAssetPairs")]
+        Task<IReadOnlyList<AssetPairSettingsModel>> GetDependentAssetPairSettingsAsync();
+        
+        [Put("/api/settings/dependentAssetPairs")]
+        Task UpdateDependentAssetPairSettingsAsync(AssetPairSettingsModel model);
+        
+        [Delete("/api/settings/dependentAssetPairs")]
+        Task DeleteDependentAssetPairSettingsAsync(string assetPairId);
     }
 }

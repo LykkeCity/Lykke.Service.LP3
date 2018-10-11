@@ -2,14 +2,14 @@ using Lykke.AzureStorage.Tables;
 
 namespace Lykke.Service.LP3.AzureRepositories
 {
-    public class BaseAssetPairSettingsEntity : AzureTableEntity
+    public class AssetPairSettingsEntity : AzureTableEntity
     {
-        public BaseAssetPairSettingsEntity()
+        public AssetPairSettingsEntity()
         {
             
         }
 
-        public BaseAssetPairSettingsEntity(string partitionKey, string rowKey)
+        public AssetPairSettingsEntity(string partitionKey, string rowKey)
         {
             PartitionKey = partitionKey;
             RowKey = rowKey;

@@ -44,7 +44,7 @@ namespace Lykke.Service.LP3.Tests
 
             var settingsServiceMock = new Mock<ISettingsService>();
             settingsServiceMock.Setup(x => x.GetBaseAssetPairSettings())
-                .ReturnsAsync(new BaseAssetPairSettings{ AssetPairId = "LKKCHF" });
+                .ReturnsAsync(new AssetPairSettings{ AssetPairId = "LKKCHF" });
 
             var additionalVolumeServiceMock = new Mock<IAdditionalVolumeService>();
             additionalVolumeServiceMock.Setup(x => x.GetOrdersAsync(It.IsAny<IEnumerable<LimitOrder>>()))
@@ -56,7 +56,8 @@ namespace Lykke.Service.LP3.Tests
                 additionalVolumeServiceMock.Object,
                 initialPriceServiceMock.Object,
                 Mock.Of<ILykkeExchange>(),
-                assetsServiceMock.Object);
+                assetsServiceMock.Object,
+                Mock.Of<IOrdersConverter>());
             
             trader.Start();
 

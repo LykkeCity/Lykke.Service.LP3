@@ -8,9 +8,13 @@ namespace Lykke.Service.LP3.Domain.Services
     {
         string GetWalletId();
 
-        Task<BaseAssetPairSettings> GetBaseAssetPairSettings();
-        Task SaveBaseAssetPairSettings(BaseAssetPairSettings settings);
-        
+        Task<AssetPairSettings> GetBaseAssetPairSettings();
+        Task SaveBaseAssetPairSettings(AssetPairSettings settings);
+
+        Task UpdateDependentAssetPairSettingsAsync(AssetPairSettings settings);
+        Task<IEnumerable<AssetPairSettings>> GetDependentAssetPairsSettingsAsync();
+        Task DeleteDependentAssetPairSettingsAsync(string assetPairId);
+
         Task UpdateAdditionalVolumeSettingsAsync(AdditionalVolumeSettings settings);
         Task<AdditionalVolumeSettings> GetAdditionalVolumeSettingsAsync();
         IReadOnlyList<string> GetAvailableExternalExchanges();

@@ -1,15 +1,18 @@
 using System;
 using System.Threading.Tasks;
 using Autofac;
+using AutoMapper;
 using Common;
 using Common.Log;
 using Lykke.Common.Log;
-using Lykke.MatchingEngine.ExchangeModels;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Settings;
+using ExternalOrderBook = Lykke.Common.ExchangeAdapter.Contracts.OrderBook;
+using ExternalTickPrice = Lykke.Common.ExchangeAdapter.Contracts.TickPrice;
+using DomainTickPrice = Lykke.Service.LP3.Domain.TickPrice;
 
 namespace Lykke.Service.LP3.RabbitMq.Subscribers
 {
@@ -19,7 +22,7 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
         private readonly RabbitMqSettings _settings;
         private readonly string _exchangeName;
         private readonly ICrossRateService _crossRateService;
-        private RabbitMqSubscriber<OrderBook> _subscriber;
+        private RabbitMqSubscriber<ExternalOrderBook> _subscriber;
         private readonly ILog _log;
 
         public ExternalOrderBookSubscriber(
@@ -49,7 +52,7 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
             var settings = RabbitMqSubscriptionSettings
                 .ForSubscriber(_settings.ConnectionString, _settings.ExchangeName, "lp3");
 
-            _subscriber = new RabbitMqSubscriber<OrderBook>(
+            _subscriber = new RabbitMqSubscriber<ExternalOrderBook>(
                     _logFactory,
                     settings,
                     new ResilientErrorHandlingStrategy(
@@ -57,15 +60,18 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
                         settings,
                         TimeSpan.FromSeconds(10),
                         next: new DeadQueueErrorHandlingStrategy(_logFactory, settings)))
-                .SetMessageDeserializer(new JsonMessageDeserializer<OrderBook>())
+                .SetMessageDeserializer(new JsonMessageDeserializer<ExternalOrderBook>())
                 .Subscribe(ProcessMessageAsync)
                 .CreateDefaultBinding()
                 .Start();
         }
 
-        private Task ProcessMessageAsync(OrderBook arg)
+        private async Task ProcessMessageAsync(ExternalOrderBook orderBook)
         {
-            return _crossRateService.HandleAsync(_exchangeName, arg);
+            var externalTickPrice = ExternalTickPrice.FromOrderBook(orderBook);
+            var domainTickPrice = Mapper.Map<DomainTickPrice>(externalTickPrice);
+            
+            await _crossRateService.HandleAsync(domainTickPrice);
         }
 
         public void Dispose()

@@ -20,6 +20,7 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
             const string settingsTableName = "Settings";
             const string tradesTableName = "Trades";
             const string crossInstrumentsTableName = "CrossInstruments";
+            const string lastTickPricesTableName = "LastTickPrices";
             
             builder.Register(container => new LevelRepository(
                     AzureTableStorage<LevelEntity>.Create(_connectionString,
@@ -55,6 +56,12 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
                     AzureTableStorage<CrossInstrumentEntity>.Create(_connectionString,
                         crossInstrumentsTableName, container.Resolve<ILogFactory>())))
                 .As<ICrossInstrumentRepository>()
+                .SingleInstance();
+            
+            builder.Register(container => new LastTickPriceRepository(
+                    AzureTableStorage<LastTickPriceEntity>.Create(_connectionString,
+                        lastTickPricesTableName, container.Resolve<ILogFactory>())))
+                .As<ILastTickPriceRepository>()
                 .SingleInstance();
         }
     }

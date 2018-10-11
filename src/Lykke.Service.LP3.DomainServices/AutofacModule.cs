@@ -60,6 +60,10 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<OrdersConverter>()
                 .As<IOrdersConverter>()
                 .SingleInstance();
+
+            builder.RegisterType<CrossRateService>()
+                .As<ICrossRateService>()
+                .SingleInstance();
         }
     }
 }

@@ -15,9 +15,9 @@ namespace Lykke.Service.LP3.DomainServices
             _crossInstrumentRepository = crossInstrumentRepository;
         }
 
-        public Task<IReadOnlyList<CrossInstrument>> GetAsync()
+        public Task<IReadOnlyList<CrossInstrument>> GetAllAsync()
         {
-            return _crossInstrumentRepository.GetAsync();
+            return _crossInstrumentRepository.GetAsync(); // TODO: add Cache
         }
 
         public Task<CrossInstrument> GetAsync(string exchange, string assetPairId)

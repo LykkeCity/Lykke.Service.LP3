@@ -8,6 +8,7 @@ using Common;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.CrossInstruments;
+using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.CrossInstruments;
 using Lykke.Service.LP3.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -31,7 +32,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(IReadOnlyList<CrossInstrumentModel>), (int) HttpStatusCode.OK)]
         public async Task<IReadOnlyList<CrossInstrumentModel>> GetAsync()
         {
-            var crossInstruments = await _crossInstrumentService.GetAsync();
+            var crossInstruments = await _crossInstrumentService.GetAllAsync();
             return Mapper.Map<List<CrossInstrumentModel>>(crossInstruments);
         }
 
@@ -43,8 +44,9 @@ namespace Lykke.Service.LP3.Controllers
                 throw new ValidationApiException($"A cross instrument {model.AssetPairId}@{model.Exchange} already exists");
             }
 
-            if (!_settingsService.GetAvailableExternalExchanges().Any(x =>
-                string.Equals(x, model.Exchange, StringComparison.InvariantCultureIgnoreCase)))
+            if (!string.Equals(model.Exchange, Consts.LykkeExchangeName, StringComparison.InvariantCultureIgnoreCase) &&
+                !_settingsService.GetAvailableExternalExchanges().Any(x =>
+                                        string.Equals(x, model.Exchange, StringComparison.InvariantCultureIgnoreCase)))
             {
                 throw new ValidationApiException($"For adding cross instrument on {model.Exchange} exchange " +
                                                  "it's needed to add the exchange adapter in the service global settings");

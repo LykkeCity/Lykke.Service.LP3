@@ -31,6 +31,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
             
             CreateMap<CrossInstrumentEntity, CrossInstrument>(MemberList.Destination);
             CreateMap<CrossInstrument, CrossInstrumentEntity>(MemberList.Source);
+
+            CreateMap<LastTickPriceEntity, TickPrice>(MemberList.Destination);
+            CreateMap<TickPrice, LastTickPriceEntity>(MemberList.Source);
         }
     }
 }

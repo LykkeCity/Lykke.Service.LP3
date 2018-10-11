@@ -91,6 +91,7 @@ namespace Lykke.Service.LP3.Modules
                     .WithParameter(TypedParameter.From(externalExchangeSettings.Name))
                     .WithParameter(TypedParameter.From(externalExchangeSettings.Rabbit))
                     .Named<ExternalOrderBookSubscriber>(externalExchangeSettings.Name)
+                    .As<IStartable>()
                     .SingleInstance();
             }
         }

@@ -18,24 +18,24 @@ namespace Lykke.Service.LP3.Controllers
             _lp3Service = lp3Service;
         }
         
-        [HttpGet]
+        [HttpGet("base")]
         [ProducesResponseType(typeof(IReadOnlyList<LimitOrderModel>), (int) HttpStatusCode.OK)]
-        public IReadOnlyList<LimitOrderModel> GetAll()
+        public IReadOnlyList<LimitOrderModel> GetBaseOrders()
         {
-            var orders = _lp3Service.GetOrders();
+            var orders = _lp3Service.GetBaseOrders();
 
             var models = Mapper.Map<List<LimitOrderModel>>(orders);
 
             return models;
         }
         
-        [HttpGet("{assetPairId}")]
-        [ProducesResponseType(typeof(IReadOnlyList<LimitOrderModel>), (int) HttpStatusCode.OK)]
-        public IReadOnlyList<LimitOrderModel> Get(string assetPairId)
+        [HttpGet("dependent/{assetPairId}")]
+        [ProducesResponseType(typeof(IReadOnlyList<DependentLimitOrderModel>), (int) HttpStatusCode.OK)]
+        public IReadOnlyList<DependentLimitOrderModel> GetDependentOrders(string assetPairId)
         {
             var orders = _lp3Service.GetOrders(assetPairId);
 
-            var models = Mapper.Map<List<LimitOrderModel>>(orders);
+            var models = Mapper.Map<List<DependentLimitOrderModel>>(orders);
 
             return models;
         }

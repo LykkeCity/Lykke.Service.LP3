@@ -7,9 +7,9 @@ namespace Lykke.Service.LP3.Client
     public interface IOrdersApi
     {
         [Get("/api/orders")]
-        IReadOnlyList<LimitOrderModel> GetAll();
+        IReadOnlyList<LimitOrderModel> GetBaseOrders();
         
         [Get("/api/orders/{assetPairId}")]
-        IReadOnlyList<LimitOrderModel> Get(string assetPairId);
+        IReadOnlyList<DependentLimitOrderModel> GetDependentOrders(string assetPairId);
     }
 }

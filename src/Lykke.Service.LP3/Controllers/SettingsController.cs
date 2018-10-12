@@ -34,7 +34,16 @@ namespace Lykke.Service.LP3.Controllers
         {
             return _settingsService.GetWalletId();
         }
-        
+
+        [HttpGet("availableExchanges")]
+        [ProducesResponseType(typeof(IReadOnlyList<string>), (int)HttpStatusCode.OK)]
+        public IReadOnlyList<string> GetAvailableExchanges()
+        {
+            return _settingsService.GetAvailableExternalExchanges();
+        }
+
+        #region BaseAssetPair
+
         [HttpGet("baseAssetPair")]
         [ProducesResponseType(typeof(BaseAssetPairSettingsModel), (int) HttpStatusCode.OK)]
         public async Task<BaseAssetPairSettingsModel> GetBaseAssetPairSettingsAsync()
@@ -56,6 +65,11 @@ namespace Lykke.Service.LP3.Controllers
         {
             await _settingsService.DeleteBaseAssetPairSettingsAsync();
         }
+
+        #endregion
+        
+        
+        #region DependentAssetPairSettings
         
         [HttpGet("dependentAssetPairs")]
         [ProducesResponseType(typeof(IReadOnlyList<AssetPairSettingsModel>), (int) HttpStatusCode.OK)]
@@ -74,7 +88,8 @@ namespace Lykke.Service.LP3.Controllers
                     string.Equals(x, model.CrossInstrumentSource, StringComparison.InvariantCultureIgnoreCase)))
             {
                 throw new ValidationApiException($"For adding cross instrument on {model.CrossInstrumentSource} exchange " +
-                                                 "it's needed to add the exchange adapter in the service global settings");
+                                                 "it's needed to add the exchange adapter in the service global settings. " +
+                                                 "Use GET /api/settings/availableExchagnes to see the list.");
             }
             
             
@@ -88,6 +103,11 @@ namespace Lykke.Service.LP3.Controllers
             await _settingsService.DeleteDependentAssetPairSettingsAsync(assetPairId);
         }
         
+        #endregion
+
+
+        #region Levels
+
         [HttpGet("levels")]
         [ProducesResponseType(typeof(IReadOnlyList<LevelSettingsModel>), (int) HttpStatusCode.OK)]
         public Task<IReadOnlyList<LevelSettingsModel>> GetLevelsSettingsAsync()
@@ -117,7 +137,6 @@ namespace Lykke.Service.LP3.Controllers
             await _levelsService.DeleteAsync(name);
         }
         
-        
         [HttpPut("levels")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
@@ -132,6 +151,11 @@ namespace Lykke.Service.LP3.Controllers
             await _levelsService.UpdateAsync(model.Name, model.Delta, model.Volume);
         }
 
+        #endregion
+
+
+        #region AdditionalVolumeSettings
+        
         [HttpGet("additionalVolumeSettings")]
         [ProducesResponseType(typeof(AdditionalVolumeSettingsModel), (int) HttpStatusCode.OK)]
         public async Task<AdditionalVolumeSettingsModel> GetAdditionalVolumeSettingsAsync()
@@ -146,5 +170,7 @@ namespace Lykke.Service.LP3.Controllers
         {
             await _settingsService.UpdateAdditionalVolumeSettingsAsync(Mapper.Map<AdditionalVolumeSettings>(model));
         }
+
+        #endregion
     }
 }

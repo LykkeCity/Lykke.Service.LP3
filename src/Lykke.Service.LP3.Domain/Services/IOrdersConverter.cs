@@ -6,6 +6,6 @@ namespace Lykke.Service.LP3.Domain.Services
 {
     public interface IOrdersConverter
     {
-        Task<LimitOrder> ConvertAsync(LimitOrder order, AssetPairSettings assetPairSettings);
+        Task<DependentLimitOrder> ConvertAsync(LimitOrder order, AssetPairSettings assetPairSettings);
     }
 }

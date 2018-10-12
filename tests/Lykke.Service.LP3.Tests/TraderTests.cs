@@ -62,7 +62,7 @@ namespace Lykke.Service.LP3.Tests
         {
             var trader = CreateTrader();
             
-            var orders = trader.GetOrders().ToList();
+            var orders = trader.GetBaseOrders().ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             
@@ -91,7 +91,7 @@ namespace Lykke.Service.LP3.Tests
                 Volume = 10
             }});
             
-            var orders = trader.GetOrders().ToList();
+            var orders = trader.GetBaseOrders().ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             
@@ -120,7 +120,7 @@ namespace Lykke.Service.LP3.Tests
                 Volume = 20
             }});
             
-            var orders = trader.GetOrders().ToList();
+            var orders = trader.GetBaseOrders().ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             
@@ -149,7 +149,7 @@ namespace Lykke.Service.LP3.Tests
                 Volume = 30
             }});
             
-            var orders = trader.GetOrders().ToList();
+            var orders = trader.GetBaseOrders().ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             

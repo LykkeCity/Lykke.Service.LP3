@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Service.LP3.Domain;
@@ -39,6 +40,11 @@ namespace Lykke.Service.LP3.DomainServices
                 string.Equals(x.Source, source, StringComparison.InvariantCultureIgnoreCase) &&
                 string.Equals(x.AssetPair, assetPair, StringComparison.InvariantCultureIgnoreCase));
 
+        }
+
+        public Task<IReadOnlyList<TickPrice>> GetAllTickPricesAsync()
+        {
+            return _lastTickPriceRepository.GetAllAsync();
         }
     }
 }

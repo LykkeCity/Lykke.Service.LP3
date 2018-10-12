@@ -53,5 +53,8 @@ namespace Lykke.Service.LP3.Client
 
         [Get("/api/settings/walletId")]
         string GetWalletId();
+
+        [Get("/api/settings/availableExchanges")]
+        IReadOnlyList<string> GetAvailableExchanges();
     }
 }

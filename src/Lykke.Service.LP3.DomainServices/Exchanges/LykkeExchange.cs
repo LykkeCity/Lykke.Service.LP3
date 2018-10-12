@@ -24,7 +24,11 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         private readonly IAssetPairsReadModelRepository _assetsService;
         private readonly ILog _log;
 
-        private readonly ConcurrentDictionary<string, List<LimitOrder>> _orders = new ConcurrentDictionary<string, List<LimitOrder>>();
+        private readonly ConcurrentDictionary<string, List<LimitOrder>> _orders = 
+            new ConcurrentDictionary<string, List<LimitOrder>>();
+        
+        private readonly Dictionary<string, Dictionary<Guid, string>> _idsMap = 
+            new Dictionary<string, Dictionary<Guid, string>>(); // TODO: persist this map
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
@@ -57,7 +61,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 throw new Exception($"AssetService have returned null for asset pair {assetPairId}");
             }
 
-            var map = new Dictionary<string, Guid>();
+            var mapExternalToInternal = new Dictionary<string, Guid>();
+            var mapInternalToExternal = new Dictionary<Guid, string>();
             
             var multiOrderItems = new List<MultiOrderItemModel>();
 
@@ -68,12 +73,14 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                     Id = Guid.NewGuid().ToString("D"),
                     OrderAction = limitOrder.TradeType.ToOrderAction(),
                     Price = (double) limitOrder.Price.TruncateDecimalPlaces(assetPair.Accuracy, toUpper: limitOrder.TradeType == TradeType.Sell),
-                    Volume = (double) Math.Round(Math.Abs(limitOrder.Volume), assetPair.InvertedAccuracy)
+                    Volume = (double) Math.Round(Math.Abs(limitOrder.Volume), assetPair.InvertedAccuracy),
+                    OldId = _idsMap.ContainsKey(assetPairId) && _idsMap[assetPairId].ContainsKey(limitOrder.Id) ? _idsMap[assetPairId][limitOrder.Id] : null
                 };
 
                 multiOrderItems.Add(multiOrderItem);
 
-                map[multiOrderItem.Id] = limitOrder.Id;
+                mapExternalToInternal[multiOrderItem.Id] = limitOrder.Id;
+                mapInternalToExternal[limitOrder.Id] = multiOrderItem.Id;
             }
 
             var multiLimitOrder = new MultiLimitOrderModel
@@ -93,6 +100,9 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             try
             {
                 response = await _matchingEngineClient.PlaceMultiLimitOrderAsync(multiLimitOrder);
+                
+                _idsMap[assetPairId] = mapInternalToExternal;
+                _orders[assetPairId] = limitOrders.ToList();
             }
             catch (Exception exception)
             {
@@ -111,7 +121,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
             foreach (var orderStatus in response.Statuses)
             {
-                if (map.TryGetValue(orderStatus.Id, out var limitOrderId))
+                if (mapExternalToInternal.TryGetValue(orderStatus.Id, out var limitOrderId))
                 {
                     var limitOrder = limitOrders.Single(e => e.Id == limitOrderId);
 
@@ -121,8 +131,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                         : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
                 }
             }
-
-            _orders[assetPairId] = limitOrders.ToList();
         }
     }
 }

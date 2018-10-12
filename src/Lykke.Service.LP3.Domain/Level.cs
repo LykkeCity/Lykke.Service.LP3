@@ -45,14 +45,20 @@ namespace Lykke.Service.LP3.Domain
         {
             return new[]
             {
-                new LimitOrder(Sell, Math.Abs(VolumeSell), TradeType.Sell), 
-                new LimitOrder(Buy, VolumeBuy, TradeType.Buy), 
+                new LimitOrder(_sellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell), 
+                new LimitOrder(_buyOrderId, Buy, VolumeBuy, TradeType.Buy) 
             };
         }
+
+        private Guid _sellOrderId = Guid.NewGuid();  // TODO: persistent
+        private Guid _buyOrderId = Guid.NewGuid();
 
         public void UpdateReference(decimal price)
         {
             Reference = price;
+            
+            _sellOrderId = Guid.NewGuid();
+            _buyOrderId = Guid.NewGuid();
         }
         
         public void UpdateSettings(decimal delta, decimal volume)

@@ -18,8 +18,13 @@ namespace Lykke.Service.LP3.Domain.Orders
         public string ErrorMessage { get; set; }
 
         public LimitOrder(decimal price, decimal volume, TradeType tradeType)
+            : this(Guid.NewGuid(), price, volume, tradeType)
         {
-            Id = Guid.NewGuid();
+        }
+        
+        internal LimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType)
+        {
+            Id = id;
             
             Price = price;
             Volume = volume;

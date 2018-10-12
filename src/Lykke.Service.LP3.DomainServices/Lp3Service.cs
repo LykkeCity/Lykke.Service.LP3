@@ -298,7 +298,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             var allEnabledDependentAssetPairs = dependentPairsSettings.Select(x => x.AssetPairId);
             var deletedDependentAssetPairs =
-                _ordersByAssetPairs.Keys.Where(x => !allEnabledDependentAssetPairs.Contains(x));
+                _ordersByAssetPairs.Keys.Where(x => !allEnabledDependentAssetPairs.Contains(x) && x != _baseAssetPairId);
             
             foreach (var dependentAssetPairId in deletedDependentAssetPairs)
             {

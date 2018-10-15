@@ -33,10 +33,6 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<ILykkeTradeService>()
                 .SingleInstance();
 
-            builder.RegisterType<InitialPriceService>()
-                .As<IInitialPriceService>()
-                .SingleInstance();
-
             builder.RegisterType<LevelsService>()
                 .As<ILevelsService>()
                 .As<IStartable>()

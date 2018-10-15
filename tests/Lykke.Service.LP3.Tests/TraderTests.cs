@@ -16,6 +16,8 @@ namespace Lykke.Service.LP3.Tests
 {
     public class TraderTests
     {
+        private const string BaseAssetPairId = "LKKCHF"; 
+        
         private Lp3Service CreateTrader()
         {
             var levels = new[]
@@ -32,13 +34,11 @@ namespace Lykke.Service.LP3.Tests
             var levelsService = new LevelsService(EmptyLogFactory.Instance, levelRepositoryMock.Object);
             levelsService.Start();
 
-            var initialPriceServiceMock = new Mock<IInitialPriceService>();
-            initialPriceServiceMock.Setup(x => x.GetAsync())
-                .ReturnsAsync(new InitialPrice(1000m));
-
             var settingsServiceMock = new Mock<ISettingsService>();
             settingsServiceMock.Setup(x => x.GetBaseAssetPairSettingsAsync())
-                .ReturnsAsync(new AssetPairSettings{ AssetPairId = "LKKCHF" });
+                .ReturnsAsync(new AssetPairSettings{ AssetPairId = BaseAssetPairId });
+            settingsServiceMock.Setup(x => x.GetInitialPriceAsync())
+                .ReturnsAsync(new InitialPrice(1000m));
 
             var additionalVolumeServiceMock = new Mock<IAdditionalVolumeService>();
             additionalVolumeServiceMock.Setup(x => x.GetOrdersAsync(It.IsAny<IEnumerable<LimitOrder>>()))
@@ -48,9 +48,9 @@ namespace Lykke.Service.LP3.Tests
                 settingsServiceMock.Object,
                 levelsService,
                 additionalVolumeServiceMock.Object,
-                initialPriceServiceMock.Object,
                 Mock.Of<ILykkeExchange>(),
-                Mock.Of<IOrdersConverter>());
+                Mock.Of<IOrdersConverter>(),
+                Mock.Of<ITradesConverter>());
             
             trader.Start();
 
@@ -87,6 +87,7 @@ namespace Lykke.Service.LP3.Tests
 
             await trader.HandleTradesAsync(new [] { new Trade
             {
+                AssetPairId = BaseAssetPairId,
                 Type = TradeType.Buy,
                 Volume = 10
             }});
@@ -116,6 +117,7 @@ namespace Lykke.Service.LP3.Tests
 
             await trader.HandleTradesAsync(new [] { new Trade
             {
+                AssetPairId = BaseAssetPairId,
                 Type = TradeType.Buy,
                 Volume = 20
             }});
@@ -145,6 +147,7 @@ namespace Lykke.Service.LP3.Tests
 
             await trader.HandleTradesAsync(new [] { new Trade
             {
+                AssetPairId = BaseAssetPairId,
                 Type = TradeType.Buy,
                 Volume = 30
             }});

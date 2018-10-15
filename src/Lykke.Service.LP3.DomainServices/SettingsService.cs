@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Common;
 using Common.Log;
 using Lykke.Common.Log;
+using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
@@ -15,6 +16,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly string _walletId;
         private readonly IAssetPairSettingsRepository _assetPairSettingsRepository;
         private readonly IAdditionalVolumeSettingsRepository _additionalVolumeSettingsRepository;
+        private readonly IInitialPriceRepository _initialPriceRepository;
         private readonly List<string> _availableExternalExchanges;
         private readonly ILog _log;
 
@@ -22,11 +24,13 @@ namespace Lykke.Service.LP3.DomainServices
             ILogFactory logFactory,
             IAssetPairSettingsRepository assetPairSettingsRepository,
             IAdditionalVolumeSettingsRepository additionalVolumeSettingsRepository,
+            IInitialPriceRepository initialPriceRepository,
             IEnumerable<string> availableExternalExchanges)
         {
             _walletId = walletId;
             _assetPairSettingsRepository = assetPairSettingsRepository;
             _additionalVolumeSettingsRepository = additionalVolumeSettingsRepository;
+            _initialPriceRepository = initialPriceRepository;
             _availableExternalExchanges = availableExternalExchanges?.ToList() ?? new List<string>();
             _log = logFactory.CreateLog(this);
         }
@@ -44,7 +48,8 @@ namespace Lykke.Service.LP3.DomainServices
         public async Task DeleteBaseAssetPairSettingsAsync()
         {
             await _assetPairSettingsRepository.DeleteBaseAsync();
-            _log.Info("Base asset pair was deleted");
+            await _initialPriceRepository.DeleteAsync();
+            _log.Info("Base asset pair was deleted. Initial price was deleted as well.");
         }
 
         public Task<AssetPairSettings> GetBaseAssetPairSettingsAsync()
@@ -57,6 +62,23 @@ namespace Lykke.Service.LP3.DomainServices
             await _assetPairSettingsRepository.AddOrUpdateBaseAsync(settings);
             _log.Info("Base asset settings were updated", context: $"new settings: {settings.ToJson()}");
         }
+        
+        
+        public Task<InitialPrice> GetInitialPriceAsync()
+        {
+            return _initialPriceRepository.GetAsync();
+        }
+
+        public Task AddOrUpdateInitialPriceAsync(decimal price)
+        {
+            return _initialPriceRepository.AddOrUpdateAsync(price);
+        }
+
+        public Task DeleteInitialPriceAsync()
+        {
+            return _initialPriceRepository.DeleteAsync();
+        }
+        
 
         public async Task UpdateDependentAssetPairSettingsAsync(AssetPairSettings settings)
         {

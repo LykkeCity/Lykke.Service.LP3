@@ -21,35 +21,33 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly ISettingsService _settingsService;
         private readonly ILevelsService _levelsService;
         private readonly IAdditionalVolumeService _additionalVolumeService;
-        private readonly IInitialPriceService _initialPriceService;
         private readonly ILykkeExchange _lykkeExchange;
         private readonly IOrdersConverter _ordersConverter;
+        private readonly ITradesConverter _tradesConverter;
         private readonly ILog _log;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private bool _started;
 
         private readonly ConcurrentDictionary<string, List<LimitOrder>> _ordersByAssetPairs = 
-            new ConcurrentDictionary<string, List<LimitOrder>>();
+            new ConcurrentDictionary<string, List<LimitOrder>>(); // TODO: persist orders
         
-        private decimal _inventory = 0;
-        private decimal _oppositeInventory = 0;
         private string _baseAssetPairId;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
             ILevelsService levelsService,
             IAdditionalVolumeService additionalVolumeService,
-            IInitialPriceService initialPriceService,
             ILykkeExchange lykkeExchange,
-            IOrdersConverter ordersConverter)
+            IOrdersConverter ordersConverter,
+            ITradesConverter tradesConverter)
         {
             _settingsService = settingsService;
             _levelsService = levelsService;
             _additionalVolumeService = additionalVolumeService;
-            _initialPriceService = initialPriceService;
             _lykkeExchange = lykkeExchange;
             _ordersConverter = ordersConverter;
+            _tradesConverter = tradesConverter;
             _log = logFactory.CreateLog(this);
         }
         
@@ -61,7 +59,7 @@ namespace Lykke.Service.LP3.DomainServices
 
         private async Task StartAsync()
         {
-            var initialPrice = await _initialPriceService.GetAsync();
+            var initialPrice = await _settingsService.GetInitialPriceAsync();
             if (initialPrice == null)
             {
                 _log.Info("No initial price to start algorithm, waiting for adding one via API");
@@ -86,18 +84,57 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await SynchronizeAsync(async () =>
             {
-                var newInitialPrice = trades.Last().Price;
-                await _initialPriceService.AddOrUpdateAsync(newInitialPrice);
-                _log.Info("InitialPrice is updated", 
-                    context: $"Trades: [{string.Join(", ", trades.Select(x => x.ToJson()))}], new InitialPrice: {newInitialPrice}");
-                
-                foreach (var trade in trades)
+                try
                 {
-                    HandleTrade(trade); // TODO: pass all trades at once?
-                }
+                    var convertedTrades = await ConvertTrades(trades);
+                
+                    await UpdateInitialPrice(trades, convertedTrades);
 
-                await ApplyOrdersAsync();
+                    foreach (var trade in convertedTrades)
+                    {
+                        HandleTrade(trade); // TODO: pass all trades at once?
+                    }
+
+                    await ApplyOrdersAsync();
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e);
+                }
             });
+        }
+
+        private async Task UpdateInitialPrice(IReadOnlyList<Trade> trades, IReadOnlyList<Trade> convertedTrades)
+        {
+            var newInitialPrice = convertedTrades.Last().Price;
+            
+            await _settingsService.AddOrUpdateInitialPriceAsync(newInitialPrice);
+
+            _log.Info("InitialPrice is updated",
+                context: $"Original trades: [{string.Join(", ", trades.Select(x => x.ToJson()))}]" +
+                         $"converted trades: [{string.Join(", ", convertedTrades.Select(x => x.ToJson()))}], " +
+                         $"new InitialPrice: {newInitialPrice}");
+        }
+
+        private async Task<IReadOnlyList<Trade>> ConvertTrades(IReadOnlyList<Trade> trades)
+        {
+            try
+            {
+                if (trades.First().AssetPairId == _baseAssetPairId)
+                {
+                    return trades;
+                }
+                
+                var assetPairSettings = (await _settingsService.GetDependentAssetPairsSettingsAsync())
+                    .SingleOrDefault(x => x.AssetPairId == trades.First().AssetPairId);
+                
+                return (await _tradesConverter.ConvertAsync(trades, assetPairSettings)).ToList();
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error on converting trades");
+                throw;
+            }
         }
 
         public async Task HandleTimerAsync()
@@ -156,30 +193,7 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 var level = _levelsService.GetLevels().OrderBy(e => e.Sell).First();
 
-                if (volume <= level.VolumeSell)
-                {
-                    volume -= level.VolumeSell;
-
-                    _inventory += level.VolumeSell;
-                    _oppositeInventory -= level.VolumeSell * level.Sell; // TODO: get rounded price from trade ? 
-
-                    level.Inventory += level.VolumeSell;
-                    level.OppositeInventory -= level.VolumeSell * level.Sell;
-
-                    level.UpdateReference(level.Sell);
-                    level.VolumeSell = -level.OriginalVolume;
-                }
-                else
-                {
-                    level.VolumeSell -= volume;
-
-                    _inventory += volume;
-                    _oppositeInventory -= volume * level.Sell;
-                    level.Inventory += volume;
-                    level.OppositeInventory -= volume * level.Sell;
-
-                    volume = 0;
-                }
+                volume = level.HandleSellVolume(volume);
                 
                 _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
 
@@ -190,28 +204,7 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 var level = _levelsService.GetLevels().OrderByDescending(e => e.Buy).First();
 
-                if (volume >= level.VolumeBuy)
-                {
-                    volume -= level.VolumeBuy;
-
-                    _inventory += level.VolumeBuy;
-                    _oppositeInventory -= level.VolumeBuy * level.Buy;
-
-                    level.Inventory += level.VolumeBuy;
-                    level.OppositeInventory -= level.VolumeBuy * level.Buy;
-
-                    level.UpdateReference(level.Buy);
-                    level.VolumeBuy = level.OriginalVolume;
-                }
-                else
-                {
-                    level.VolumeBuy -= volume;
-                    _inventory += volume;
-                    _oppositeInventory -= volume * level.Buy;
-                    level.Inventory += volume;
-                    level.OppositeInventory -= volume * level.Buy;
-                    volume = 0;
-                }
+                volume = level.HandleBuyVolume(volume);
                 
                 _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
                 

@@ -19,5 +19,9 @@ namespace Lykke.Service.LP3.Domain.Services
         Task<AdditionalVolumeSettings> GetAdditionalVolumeSettingsAsync();
         IReadOnlyList<string> GetAvailableExternalExchanges();
         Task DeleteBaseAssetPairSettingsAsync();
+        
+        Task<InitialPrice> GetInitialPriceAsync();
+        Task AddOrUpdateInitialPriceAsync(decimal price);
+        Task DeleteInitialPriceAsync();
     }
 }

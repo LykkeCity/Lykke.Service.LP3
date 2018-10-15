@@ -6,6 +6,7 @@ using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
+using Lykke.Service.LP3.DomainServices.Extensions;
 
 namespace Lykke.Service.LP3.DomainServices
 {
@@ -85,7 +86,7 @@ namespace Lykke.Service.LP3.DomainServices
             }
             else if (assetPairSettings.IsReversed && assetPairSettings.IsCrossInstrumentReversed) // case 3: LKKCHF -> BTCLKK via BTCCHF
             {
-                convertedTradeType = ReverseTradeType(order.TradeType);
+                convertedTradeType = order.TradeType.Reverse();
 
                 if (order.TradeType == TradeType.Sell)
                 {
@@ -106,7 +107,7 @@ namespace Lykke.Service.LP3.DomainServices
             }
             else if (assetPairSettings.IsReversed && !assetPairSettings.IsCrossInstrumentReversed) // case 4: LKKCHF -> BTCLKK via CHFBTC
             {
-                convertedTradeType = ReverseTradeType(order.TradeType);
+                convertedTradeType = order.TradeType.Reverse();
 
                 if (order.TradeType == TradeType.Sell)
                 {
@@ -138,22 +139,9 @@ namespace Lykke.Service.LP3.DomainServices
                 Description = conversionDescription
             };
 
-            _log.Info("Order converted", context: $"from: {order.ToJson()}, to: {convertedOrder.ToJson()}");
+            _log.Info("Order was converted", context: $"from: {order.ToJson()}, to: {convertedOrder.ToJson()}");
             
             return convertedOrder;
-        }
-
-        private TradeType ReverseTradeType(TradeType tradeType)
-        {
-            switch (tradeType)
-            {
-                case TradeType.Buy:
-                    return TradeType.Sell;
-                case TradeType.Sell:
-                    return TradeType.Buy;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(tradeType), tradeType, null);
-            }
         }
     }
 }

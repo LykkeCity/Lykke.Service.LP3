@@ -72,5 +72,57 @@ namespace Lykke.Service.LP3.Domain
                 OriginalVolume = volume;    
             }
         }
+
+        public decimal HandleSellVolume(decimal volume)
+        {
+            if (volume <= VolumeSell)
+            {
+                volume -= VolumeSell;
+
+                Inventory += VolumeSell;
+                OppositeInventory -= VolumeSell * Sell; // TODO: get rounded price from trade ? 
+
+                Reference = Sell;
+                VolumeSell = -OriginalVolume;
+                
+                _sellOrderId = Guid.NewGuid();
+            }
+            else
+            {
+                VolumeSell -= volume;
+
+                Inventory += volume;
+                OppositeInventory -= volume * Sell;
+
+                volume = 0;
+            }
+
+            return volume;
+        }
+
+        public decimal HandleBuyVolume(decimal volume)
+        {
+            if (volume >= VolumeBuy)
+            {
+                volume -= VolumeBuy;
+
+                Inventory += VolumeBuy;
+                OppositeInventory -= VolumeBuy * Buy;
+
+                Reference = Buy;
+                VolumeBuy = OriginalVolume;
+                
+                _buyOrderId = Guid.NewGuid();
+            }
+            else
+            {
+                VolumeBuy -= volume;
+                Inventory += volume;
+                OppositeInventory -= volume * Buy;
+                volume = 0;
+            }
+
+            return volume;
+        }
     }
 }

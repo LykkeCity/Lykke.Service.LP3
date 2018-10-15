@@ -8,6 +8,7 @@ using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
+using Lykke.Service.LP3.DomainServices.Caches;
 
 namespace Lykke.Service.LP3.DomainServices
 {
@@ -19,6 +20,8 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly IInitialPriceRepository _initialPriceRepository;
         private readonly List<string> _availableExternalExchanges;
         private readonly ILog _log;
+        
+        private readonly DependentAssetPairSettingsCache _dependentAssetPairSettingsCache = new DependentAssetPairSettingsCache();
 
         public SettingsService(string walletId,
             ILogFactory logFactory,
@@ -84,16 +87,25 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await _assetPairSettingsRepository.AddOrUpdateDependentAsync(settings);
             _log.Info("Dependent asset settings were updated", context: $"new settings: {settings.ToJson()}");
+            
+            _dependentAssetPairSettingsCache.Clear();
         }
 
         public async Task<IEnumerable<AssetPairSettings>> GetDependentAssetPairsSettingsAsync()
         {
-            return await _assetPairSettingsRepository.GetDependentAsync();
+            if (!_dependentAssetPairSettingsCache.Initialized)
+            {
+                _dependentAssetPairSettingsCache.Init(await _assetPairSettingsRepository.GetDependentAsync());   
+            }
+            
+            return _dependentAssetPairSettingsCache.GetAll();
         }
 
-        public Task DeleteDependentAssetPairSettingsAsync(string assetPairId)
+        public async Task DeleteDependentAssetPairSettingsAsync(string assetPairId)
         {
-            return _assetPairSettingsRepository.DeleteDependentAsync(assetPairId);
+            await _assetPairSettingsRepository.DeleteDependentAsync(assetPairId);
+
+            _dependentAssetPairSettingsCache.Clear();
         }
 
         public async Task UpdateAdditionalVolumeSettingsAsync(AdditionalVolumeSettings settings)

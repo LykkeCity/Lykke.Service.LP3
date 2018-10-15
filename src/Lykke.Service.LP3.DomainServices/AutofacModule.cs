@@ -53,6 +53,10 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<IOrdersConverter>()
                 .SingleInstance();
 
+            builder.RegisterType<TradesConverter>()
+                .As<ITradesConverter>()
+                .SingleInstance();
+            
             builder.RegisterType<CrossRateService>()
                 .As<ICrossRateService>()
                 .SingleInstance();

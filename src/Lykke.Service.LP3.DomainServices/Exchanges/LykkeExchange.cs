@@ -117,7 +117,14 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 throw new Exception("ME response is null");
             }
 
-            _log.Info("ME place multi limit order response", new {response = $"data: {response.ToJson()}"});
+            if (response.Statuses.All(x => x.Status == MeStatusCodes.Ok))
+            {
+                _log.Info("ME place multi limit order response", new {response = $"data: {response.ToJson()}"});
+            }
+            else
+            {
+                _log.Warning("ME place multi limit order response. Some orders have unsuccessful codes.", context: new {response = $"data: {response.ToJson()}"});
+            }
 
             foreach (var orderStatus in response.Statuses)
             {

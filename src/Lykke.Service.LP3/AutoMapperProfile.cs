@@ -28,6 +28,7 @@ namespace Lykke.Service.LP3
             CreateMap<InitialPriceModel, InitialPrice>(MemberList.Destination);
             
             CreateMap<LimitOrder, LimitOrderModel>(MemberList.Source);
+            CreateMap<DependentLimitOrder, DependentLimitOrderModel>(MemberList.Source);
             
             CreateMap<Trade, TradeModel>(MemberList.Source);
 

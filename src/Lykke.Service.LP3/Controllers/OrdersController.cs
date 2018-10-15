@@ -33,7 +33,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(IReadOnlyList<DependentLimitOrderModel>), (int) HttpStatusCode.OK)]
         public IReadOnlyList<DependentLimitOrderModel> GetDependentOrders(string assetPairId)
         {
-            var orders = _lp3Service.GetOrders(assetPairId);
+            var orders = _lp3Service.GetDependentOrders(assetPairId);
 
             var models = Mapper.Map<List<DependentLimitOrderModel>>(orders);
 

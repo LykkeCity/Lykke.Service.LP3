@@ -154,12 +154,12 @@ namespace Lykke.Service.LP3.DomainServices
 
         public IReadOnlyList<LimitOrder> GetBaseOrders()
         {
-            return GetOrders(_baseAssetPairId);
+            return _ordersByAssetPairs.TryGetValue(_baseAssetPairId, out var orders) ? orders : new List<LimitOrder>();
         }
 
-        public IReadOnlyList<LimitOrder> GetOrders(string assetPairId)
+        public IReadOnlyList<DependentLimitOrder> GetDependentOrders(string assetPairId)
         {
-            return _ordersByAssetPairs.TryGetValue(assetPairId, out var orders) ? orders : new List<LimitOrder>();
+            return _ordersByAssetPairs.TryGetValue(assetPairId, out var orders) ? orders.OfType<DependentLimitOrder>().ToList() : new List<DependentLimitOrder>();
         }
         
         private void HandleTrade(Trade trade)

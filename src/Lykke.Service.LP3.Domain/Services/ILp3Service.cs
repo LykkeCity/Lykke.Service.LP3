@@ -12,6 +12,6 @@ namespace Lykke.Service.LP3.Domain.Services
 
         IReadOnlyList<LimitOrder> GetBaseOrders();
         
-        IReadOnlyList<LimitOrder> GetOrders(string assetPairId);
+        IReadOnlyList<DependentLimitOrder> GetDependentOrders(string assetPairId);
     }
 }

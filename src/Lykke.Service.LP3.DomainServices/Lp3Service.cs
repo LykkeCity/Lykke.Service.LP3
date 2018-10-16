@@ -154,7 +154,7 @@ namespace Lykke.Service.LP3.DomainServices
 
         public IReadOnlyList<LimitOrder> GetBaseOrders()
         {
-            return _ordersByAssetPairs.TryGetValue(_baseAssetPairId, out var orderBook)
+            return _baseAssetPairId != null && _ordersByAssetPairs.TryGetValue(_baseAssetPairId, out var orderBook)
                 ? orderBook.LimitOrders
                 : new List<LimitOrder>();
         }

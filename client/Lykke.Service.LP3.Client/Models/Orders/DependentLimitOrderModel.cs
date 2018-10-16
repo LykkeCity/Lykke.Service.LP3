@@ -7,7 +7,5 @@ namespace Lykke.Service.LP3.Client.Models.Orders
         public LimitOrderModel BaseLimitOrder { get; set; }
         
         public TickPriceModel CrossTickPrice { get; set; }
-        
-        public string AssetPairId { get; set; }
     }
 }

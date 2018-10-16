@@ -11,5 +11,12 @@ namespace Lykke.Service.LP3.Tests
             Mapper.Initialize(cfg => cfg.AddProfile<AutoMapperProfile>());
             Mapper.AssertConfigurationIsValid();
         }
+
+        [Fact]
+        public void TestRepositoriesMapping()
+        {
+            Mapper.Initialize(cfg => cfg.AddProfile<Lykke.Service.LP3.AzureRepositories.Infrastructure.AutoMapperProfile>());
+            Mapper.AssertConfigurationIsValid();
+        }
     }
 }

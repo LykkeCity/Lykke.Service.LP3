@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using AutoMapper;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.Levels;
@@ -20,13 +21,13 @@ namespace Lykke.Service.LP3.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<LevelModel>), (int) HttpStatusCode.OK)]
-        public IReadOnlyList<LevelModel> GetAll()
+        public Task<IReadOnlyList<LevelModel>> GetAllAsync()
         {
             var levels = _levelsService.GetLevels();
 
             var models = Mapper.Map<IReadOnlyList<LevelModel>>(levels);
 
-            return models;
+            return Task.FromResult(models);
         }
     }
 }

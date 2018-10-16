@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Lykke.Service.LP3.Client.Models.Orders;
 using Refit;
 
@@ -7,9 +8,9 @@ namespace Lykke.Service.LP3.Client
     public interface IOrdersApi
     {
         [Get("/api/orders")]
-        IReadOnlyList<LimitOrderModel> GetBaseOrders();
+        Task<IReadOnlyList<LimitOrderModel>> GetBaseOrdersAsync();
         
         [Get("/api/orders/{assetPairId}")]
-        IReadOnlyList<DependentLimitOrderModel> GetDependentOrders(string assetPairId);
+        Task<IReadOnlyList<DependentLimitOrderModel>> GetDependentOrdersAsync(string assetPairId);
     }
 }

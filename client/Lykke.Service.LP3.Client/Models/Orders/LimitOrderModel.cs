@@ -19,5 +19,7 @@ namespace Lykke.Service.LP3.Client.Models.Orders
         public LimitOrderError Error { get; set; }
         
         public string ErrorMessage { get; set; }
+        
+        public string AssetPairId { get; set; }
     }
 }

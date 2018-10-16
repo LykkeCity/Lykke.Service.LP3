@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using AutoMapper;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.Orders;
@@ -20,24 +21,24 @@ namespace Lykke.Service.LP3.Controllers
         
         [HttpGet("base")]
         [ProducesResponseType(typeof(IReadOnlyList<LimitOrderModel>), (int) HttpStatusCode.OK)]
-        public IReadOnlyList<LimitOrderModel> GetBaseOrders()
+        public Task<IReadOnlyList<LimitOrderModel>> GetBaseOrdersAsync()
         {
             var orders = _lp3Service.GetBaseOrders();
 
             var models = Mapper.Map<List<LimitOrderModel>>(orders);
 
-            return models;
+            return Task.FromResult((IReadOnlyList<LimitOrderModel>)models);
         }
         
         [HttpGet("dependent/{assetPairId}")]
         [ProducesResponseType(typeof(IReadOnlyList<DependentLimitOrderModel>), (int) HttpStatusCode.OK)]
-        public IReadOnlyList<DependentLimitOrderModel> GetDependentOrders(string assetPairId)
+        public Task<IReadOnlyList<DependentLimitOrderModel>> GetDependentOrdersAsync(string assetPairId)
         {
             var orders = _lp3Service.GetDependentOrders(assetPairId);
 
             var models = Mapper.Map<List<DependentLimitOrderModel>>(orders);
 
-            return models;
+            return Task.FromResult((IReadOnlyList<DependentLimitOrderModel>)models);
         }
     }
 }

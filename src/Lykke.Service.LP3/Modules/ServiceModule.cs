@@ -101,6 +101,7 @@ namespace Lykke.Service.LP3.Modules
             // TODO: You should register each periodical handler in DI container as IStartable singleton and autoactivate it
 
             builder.RegisterType<RecreateOrdersPeriodicalHandler>()
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.OrdersCreationPeriod))
                 .As<IStartable>()
                 .As<IStopable>()
                 .SingleInstance();

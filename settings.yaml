@@ -35,6 +35,11 @@ LP3Service:
     settings-key: LP3-ExternalExchanges
     types:
       - JsonArray
+      
+  OrdersCreationPeriod:
+    settings-key: LP3-OrdersCreationPeriod
+    types:
+      - Optional
 
 MatchingEngineClient:
   IpEndpoint:

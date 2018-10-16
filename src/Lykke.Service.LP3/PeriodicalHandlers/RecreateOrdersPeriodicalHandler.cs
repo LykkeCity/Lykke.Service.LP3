@@ -14,10 +14,11 @@ namespace Lykke.Service.LP3.PeriodicalHandlers
         private readonly TimerTrigger _timerTrigger;
         
         public RecreateOrdersPeriodicalHandler(ILogFactory logFactory,
-            ILp3Service lp3Service)
+            ILp3Service lp3Service,
+            TimeSpan timerPeriod)
         {
             _lp3Service = lp3Service;
-            _timerTrigger = new TimerTrigger(nameof(RecreateOrdersPeriodicalHandler), TimeSpan.FromSeconds(30), logFactory);
+            _timerTrigger = new TimerTrigger(nameof(RecreateOrdersPeriodicalHandler), timerPeriod, logFactory);
             _timerTrigger.Triggered += Execute;
         }
 

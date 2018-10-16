@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System;
+using JetBrains.Annotations;
 using Lykke.SettingsReader.Attributes;
 
 namespace Lykke.Service.LP3.Settings
@@ -13,5 +14,8 @@ namespace Lykke.Service.LP3.Settings
         public RabbitSettingsGroup Rabbit { get; set; }
         
         public ExternalExchangeSettings[] ExternalExchanges { get; set; }
+
+        [Optional] 
+        public TimeSpan OrdersCreationPeriod { get; set; } = TimeSpan.FromSeconds(30);
     }
 }

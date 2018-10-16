@@ -14,7 +14,7 @@ namespace Lykke.Service.LP3.Domain.Orders
         {
         }
 
-        internal DependentLimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType) : base(id, price, volume, tradeType)
+        public DependentLimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType) : base(id, price, volume, tradeType)
         {
         }
     }

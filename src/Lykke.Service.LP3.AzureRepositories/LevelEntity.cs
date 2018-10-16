@@ -1,3 +1,4 @@
+using System;
 using Lykke.AzureStorage.Tables;
 using Lykke.AzureStorage.Tables.Entity.Annotation;
 using Lykke.AzureStorage.Tables.Entity.ValueTypesMerging;
@@ -27,6 +28,8 @@ namespace Lykke.Service.LP3.AzureRepositories
         private decimal _oppositeInventory;
         private decimal _volumeSell;
         private decimal _volumeBuy;
+        private Guid _sellOrderId;
+        private Guid _buyOrderId;
 
         public decimal Delta
         {
@@ -95,6 +98,26 @@ namespace Lykke.Service.LP3.AzureRepositories
             {
                 _volumeBuy = value;
                 MarkValueTypePropertyAsDirty(nameof(VolumeBuy));
+            }
+        }
+
+        public Guid SellOrderId
+        {
+            get => _sellOrderId;
+            set
+            {
+                _sellOrderId = value;
+                MarkValueTypePropertyAsDirty(nameof(SellOrderId));
+            }
+        }
+
+        public Guid BuyOrderId
+        {
+            get => _buyOrderId;
+            set
+            {
+                _buyOrderId = value;
+                MarkValueTypePropertyAsDirty(nameof(BuyOrderId));
             }
         }
     }

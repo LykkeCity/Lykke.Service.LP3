@@ -12,7 +12,7 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
             CreateMap<LevelEntity, Level>(MemberList.Destination)
                 .ForMember(x => x.OriginalVolume, m => m.Ignore())
                 .ConstructUsing(x => new Level(x.Name, x.Delta, x.Volume, x.VolumeBuy, x.VolumeSell, 
-                    x.Inventory, x.OppositeInventory, x.Reference));
+                    x.Inventory, x.OppositeInventory, x.Reference, x.SellOrderId, x.BuyOrderId));
             
             CreateMap<Level, LevelEntity>(MemberList.Source)
                 .ForSourceMember(x => x.Sell, m => m.Ignore())

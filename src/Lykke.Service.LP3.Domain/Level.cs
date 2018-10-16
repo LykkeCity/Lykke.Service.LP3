@@ -18,7 +18,8 @@ namespace Lykke.Service.LP3.Domain
 
         public Level(string name, decimal delta, decimal volume, decimal volumeBuy, decimal volumeSell, 
             decimal inventory, decimal oppositeInventory,
-            decimal reference)
+            decimal reference,
+            Guid sellOrderId, Guid buyOrderId)
          : this(name, delta, volume)
         {
             VolumeBuy = volumeBuy;
@@ -26,6 +27,8 @@ namespace Lykke.Service.LP3.Domain
             Inventory = inventory;
             OppositeInventory = oppositeInventory;
             Reference = reference;
+            SellOrderId = sellOrderId;
+            BuyOrderId = buyOrderId;
         }
 
         public decimal VolumeSell { get; set; }
@@ -37,6 +40,9 @@ namespace Lykke.Service.LP3.Domain
 
         public decimal Inventory { get; set; }
         public decimal OppositeInventory { get; set; }
+        
+        public Guid SellOrderId { get; private set; } = Guid.NewGuid();
+        public Guid BuyOrderId { get; private set; } = Guid.NewGuid();
 
         public decimal Sell => (decimal) Math.Exp(Math.Log((double) Reference) + (double) Delta);
         public decimal Buy => (decimal) Math.Exp(Math.Log((double) Reference) - (double) Delta);
@@ -45,20 +51,18 @@ namespace Lykke.Service.LP3.Domain
         {
             return new[]
             {
-                new LimitOrder(_sellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell), 
-                new LimitOrder(_buyOrderId, Buy, VolumeBuy, TradeType.Buy) 
+                new LimitOrder(SellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell), 
+                new LimitOrder(BuyOrderId, Buy, VolumeBuy, TradeType.Buy) 
             };
         }
 
-        private Guid _sellOrderId = Guid.NewGuid();  // TODO: persistent
-        private Guid _buyOrderId = Guid.NewGuid();
 
         public void UpdateReference(decimal price)
         {
             Reference = price;
             
-            _sellOrderId = Guid.NewGuid();
-            _buyOrderId = Guid.NewGuid();
+            SellOrderId = Guid.NewGuid();
+            BuyOrderId = Guid.NewGuid();
         }
         
         public void UpdateSettings(decimal delta, decimal volume)
@@ -85,7 +89,7 @@ namespace Lykke.Service.LP3.Domain
                 Reference = Sell;
                 VolumeSell = -OriginalVolume;
                 
-                _sellOrderId = Guid.NewGuid();
+                SellOrderId = Guid.NewGuid();
             }
             else
             {
@@ -112,7 +116,7 @@ namespace Lykke.Service.LP3.Domain
                 Reference = Buy;
                 VolumeBuy = OriginalVolume;
                 
-                _buyOrderId = Guid.NewGuid();
+                BuyOrderId = Guid.NewGuid();
             }
             else
             {

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +12,7 @@ using Lykke.Service.Assets.Client.Models.v3;
 using Lykke.Service.Assets.Client.ReadModels;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
+using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.DomainServices.Extensions;
 
@@ -24,21 +24,24 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         private readonly ISettingsService _settingsService;
         private readonly IAssetPairsReadModelRepository _assetPairsService;
         private readonly IAssetsReadModelRepository _assetsService;
+        private readonly IOrderIdsMappingRepository _orderIdsMappingRepository;
         private readonly ILog _log;
 
         private readonly Dictionary<string, Dictionary<Guid, string>> _idsMap = 
-            new Dictionary<string, Dictionary<Guid, string>>(); // TODO: persist this map
+            new Dictionary<string, Dictionary<Guid, string>>();
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
             ISettingsService settingsService,
             IAssetPairsReadModelRepository assetPairsService,
-            IAssetsReadModelRepository assetsService)
+            IAssetsReadModelRepository assetsService,
+            IOrderIdsMappingRepository orderIdsMappingRepository)
         {
             _matchingEngineClient = matchingEngineClient;
             _settingsService = settingsService;
             _assetPairsService = assetPairsService;
             _assetsService = assetsService;
+            _orderIdsMappingRepository = orderIdsMappingRepository;
 
             _log = logFactory.CreateLog(this);
         }
@@ -87,16 +90,19 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                     OrderAction = limitOrder.TradeType.ToOrderAction(),
                     Price = (double) limitOrder.Price.TruncateDecimalPlaces(assetPair.Accuracy, toUpper: limitOrder.TradeType == TradeType.Sell),
                     Volume = (double) roundedVolume,
-                    OldId = _idsMap.ContainsKey(assetPairId) && _idsMap[assetPairId].ContainsKey(limitOrder.Id) 
-                        ? _idsMap[assetPairId][limitOrder.Id] : null
+                    OldId = limitOrder.Id != default && _idsMap.ContainsKey(assetPairId) && _idsMap[assetPairId].ContainsKey(limitOrder.Id)
+                        ? _idsMap[assetPairId][limitOrder.Id]
+                        : null
                 };
 
                 limitOrder.MultiOrderItemId = multiOrderItem.Id;
-                limitOrder.OldId = multiOrderItem.OldId;
                 
                 multiOrderItems.Add(multiOrderItem);
 
-                mapInternalToExternal[limitOrder.Id] = multiOrderItem.Id;
+                if (limitOrder.Id != default)
+                {
+                    mapInternalToExternal[limitOrder.Id] = multiOrderItem.Id;
+                }
             }
 
             var multiLimitOrder = new MultiLimitOrderModel
@@ -150,29 +156,37 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                     ? orderStatus.StatusReason
                     : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
             }
+
+            await PersistMapping(assetPairId);
+        }
+
+        private async Task PersistMapping(string assetPairId)
+        {
+            try
+            {
+                await _orderIdsMappingRepository.PersistMapping(assetPairId, _idsMap[assetPairId]);
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error on saving order ids mapping");
+            }
         }
 
         public void Start()
         {
-//            _log.Info("Starting LykkeExchange. Restore persistent orders...");
-//
-//            try
-//            {
-//                var orders = _ordersService.GetAllAsync().GetAwaiter().GetResult();
-//
-//                foreach (var group in orders.GroupBy(x => x.AssetPairId))
-//                {
-//                    _orders.Add(group.Key, group.ToDictionary(x => x.Id, x => x));
-//                    
-//                    _log.Info($"Orders restored for {group.Key}", context: $"orders: [{string.Join(", ", group.Select(x => x.ToJson()))}]");
-//                }
-//            }
-//            catch (Exception e)
-//            {
-//                _log.Error(e, $"Error on restoring orders. LykkeExchange will start without persistent orders.");
-//            }
-            
-            // TODO: load just mappings
+            try
+            {
+                Dictionary<string, Dictionary<Guid, string>> map = _orderIdsMappingRepository.RestoreMapping().GetAwaiter().GetResult();
+
+                foreach (var keyValuePair in map)
+                {
+                    _idsMap.Add(keyValuePair.Key, keyValuePair.Value);
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error on restoring orders mapping. LykkeExchange will start without mapping.");
+            }
         }
     }
 }

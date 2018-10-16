@@ -75,7 +75,7 @@ namespace Lykke.Service.LP3.DomainServices
                     ? (decimal) Math.Exp(Math.Log((double) price) + (double) settings.Delta)
                     : (decimal) Math.Exp(Math.Log((double) price) - (double) settings.Delta);
                 
-                yield return new LimitOrder(price, settings.Volume, tradeType);
+                yield return new LimitOrder(Guid.Empty, price, settings.Volume, tradeType);
             }
         }
     }

@@ -81,8 +81,15 @@ namespace Lykke.Service.LP3.Controllers
         [HttpPost("dependentAssetPairs")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
-        public async Task UpdateDependentAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
+        public async Task AddDependentAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
         {
+            var existingSettings = await _settingsService.GetDependentAssetPairsSettingsAsync();
+            
+            if (existingSettings.Any(x => string.Equals(x.AssetPairId, model.AssetPairId, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"DependentAssetPairSettings for asset pair {model.AssetPairId} already exists.");
+            }
+            
             if (!string.Equals(model.CrossInstrumentSource, Consts.LykkeExchangeName, StringComparison.InvariantCultureIgnoreCase) &&
                 !_settingsService.GetAvailableExternalExchanges().Any(x =>
                     string.Equals(x, model.CrossInstrumentSource, StringComparison.InvariantCultureIgnoreCase)))
@@ -91,7 +98,30 @@ namespace Lykke.Service.LP3.Controllers
                                                  "it's needed to add the exchange adapter in the service global settings. " +
                                                  "Use GET /api/settings/availableExchagnes to see the list.");
             }
+
+            await _settingsService.UpdateDependentAssetPairSettingsAsync(Mapper.Map<AssetPairSettings>(model));
+        }
+
+        [HttpPut("dependentAssetPairs")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
+        public async Task UpdateDependentAssetPairSettingsAsync([FromBody] AssetPairSettingsModel model)
+        {
+            var existingSettings = await _settingsService.GetDependentAssetPairsSettingsAsync();
             
+            if (!existingSettings.Any(x => string.Equals(x.AssetPairId, model.AssetPairId, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"DependentAssetPairSettings for asset pair {model.AssetPairId} doesn't exists.");
+            }
+            
+            if (!string.Equals(model.CrossInstrumentSource, Consts.LykkeExchangeName, StringComparison.InvariantCultureIgnoreCase) &&
+                !_settingsService.GetAvailableExternalExchanges().Any(x =>
+                    string.Equals(x, model.CrossInstrumentSource, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"For adding cross instrument on {model.CrossInstrumentSource} exchange " +
+                                                 "it's needed to add the exchange adapter in the service global settings. " +
+                                                 "Use GET /api/settings/availableExchagnes to see the list.");
+            }
             
             await _settingsService.UpdateDependentAssetPairSettingsAsync(Mapper.Map<AssetPairSettings>(model));
         }

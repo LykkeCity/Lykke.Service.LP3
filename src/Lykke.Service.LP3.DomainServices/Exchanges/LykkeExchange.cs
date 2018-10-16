@@ -63,7 +63,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                     $"AssetService have returned null for base asset {assetPair.BaseAssetId} from pair {assetPairId}");
             }
 
-            var mapExternalToInternal = new Dictionary<string, Guid>();
             var mapInternalToExternal = new Dictionary<Guid, string>();
             
             var multiOrderItems = new List<MultiOrderItemModel>();
@@ -97,7 +96,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 
                 multiOrderItems.Add(multiOrderItem);
 
-                mapExternalToInternal[multiOrderItem.Id] = limitOrder.Id;
                 mapInternalToExternal[limitOrder.Id] = multiOrderItem.Id;
             }
 
@@ -145,15 +143,12 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
             foreach (var orderStatus in response.Statuses)
             {
-                if (mapExternalToInternal.TryGetValue(orderStatus.Id, out var limitOrderId))
-                {
-                    var limitOrder = limitOrders.Single(e => e.Id == limitOrderId);
+                var limitOrder = limitOrders.Single(e => e.MultiOrderItemId == orderStatus.Id);
 
-                    limitOrder.Error = orderStatus.Status.ToOrderError();
-                    limitOrder.ErrorMessage = limitOrder.Error != LimitOrderError.Unknown 
-                        ? orderStatus.StatusReason
-                        : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
-                }
+                limitOrder.Error = orderStatus.Status.ToOrderError();
+                limitOrder.ErrorMessage = limitOrder.Error != LimitOrderError.Unknown 
+                    ? orderStatus.StatusReason
+                    : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
             }
         }
 

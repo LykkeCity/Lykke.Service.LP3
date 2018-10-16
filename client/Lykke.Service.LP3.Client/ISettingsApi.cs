@@ -21,7 +21,7 @@ namespace Lykke.Service.LP3.Client
         [Get("/api/settings/dependentAssetPairs")]
         Task<IReadOnlyList<AssetPairSettingsModel>> GetDependentAssetPairSettingsAsync();
         
-        [Put("/api/settings/dependentAssetPairs")]
+        [Post("/api/settings/dependentAssetPairs")]
         Task UpdateDependentAssetPairSettingsAsync(AssetPairSettingsModel model);
         
         [Delete("/api/settings/dependentAssetPairs")]

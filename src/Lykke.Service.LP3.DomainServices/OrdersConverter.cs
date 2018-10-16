@@ -131,7 +131,7 @@ namespace Lykke.Service.LP3.DomainServices
                 throw new Exception($"Impossible case: {assetPairSettings.ToJson()}");
             }
             
-            var convertedOrder = new DependentLimitOrder(convertedPrice, convertedVolume, convertedTradeType)
+            var convertedOrder = new DependentLimitOrder(order.Id, convertedPrice, convertedVolume, convertedTradeType)
             {
                 AssetPairId = assetPairSettings.AssetPairId,
                 BaseLimitOrder = order,

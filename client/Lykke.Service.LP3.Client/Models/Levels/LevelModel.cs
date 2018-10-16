@@ -1,3 +1,5 @@
+using System;
+
 namespace Lykke.Service.LP3.Client.Models.Levels
 {
     public class LevelModel
@@ -12,5 +14,7 @@ namespace Lykke.Service.LP3.Client.Models.Levels
         public decimal OppositeInventory { get; set; }
         public decimal Sell { get; set; }
         public decimal Buy { get; set; }
+        public Guid SellOrderId { get; set; }
+        public Guid BuyOrderId { get; set; }
     }
 }

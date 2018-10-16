@@ -51,8 +51,8 @@ namespace Lykke.Service.LP3.Domain
         {
             return new[]
             {
-                new LimitOrder(SellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell), 
-                new LimitOrder(BuyOrderId, Buy, VolumeBuy, TradeType.Buy) 
+                new LimitOrder(SellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell) { LevelName = Name }, 
+                new LimitOrder(BuyOrderId, Buy, VolumeBuy, TradeType.Buy) { LevelName = Name } 
             };
         }
 

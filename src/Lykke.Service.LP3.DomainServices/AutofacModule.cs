@@ -27,6 +27,7 @@ namespace Lykke.Service.LP3.DomainServices
 
             builder.RegisterType<LykkeExchange>()
                 .As<ILykkeExchange>()
+                .As<IStartable>()
                 .SingleInstance();
 
             builder.RegisterType<LykkeTradeService>()

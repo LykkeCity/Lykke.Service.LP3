@@ -29,8 +29,8 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
         private bool _started;
 
-        private readonly ConcurrentDictionary<string, List<LimitOrder>> _ordersByAssetPairs = 
-            new ConcurrentDictionary<string, List<LimitOrder>>(); // TODO: persist orders
+        private readonly ConcurrentDictionary<string, OrderBook> _ordersByAssetPairs = 
+            new ConcurrentDictionary<string, OrderBook>();
         
         private string _baseAssetPairId;
 
@@ -54,7 +54,7 @@ namespace Lykke.Service.LP3.DomainServices
 
         public void Start()
         {
-            SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();;
+            SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();
         }
 
         private async Task StartAsync()
@@ -79,7 +79,7 @@ namespace Lykke.Service.LP3.DomainServices
             
             await ApplyOrdersAsync();
         }
-
+        
         public async Task HandleTradesAsync(IReadOnlyList<Trade> trades)
         {
             await SynchronizeAsync(async () =>
@@ -87,12 +87,17 @@ namespace Lykke.Service.LP3.DomainServices
                 try
                 {
                     var convertedTrades = await ConvertTrades(trades);
-                
-                    await UpdateInitialPrice(trades, convertedTrades);
 
-                    foreach (var trade in convertedTrades)
+                    if (convertedTrades.Any(x => x.Type == TradeType.Sell))
                     {
-                        HandleTrade(trade); // TODO: pass all trades at once?
+                        var sellTrades = convertedTrades.Where(x => x.Type == TradeType.Sell).ToList();
+                        await HandleTradeAsync(sellTrades);
+                    }
+
+                    if (convertedTrades.Any(x => x.Type == TradeType.Buy))
+                    {
+                        var buyTrades = convertedTrades.Where(x => x.Type == TradeType.Buy).ToList();
+                        await HandleTradeAsync(buyTrades);
                     }
 
                     await ApplyOrdersAsync();
@@ -104,16 +109,11 @@ namespace Lykke.Service.LP3.DomainServices
             });
         }
 
-        private async Task UpdateInitialPrice(IReadOnlyList<Trade> trades, IReadOnlyList<Trade> convertedTrades)
+        private async Task UpdateInitialPrice(decimal price)
         {
-            var newInitialPrice = convertedTrades.Last().Price;
-            
-            await _settingsService.AddOrUpdateInitialPriceAsync(newInitialPrice);
+            await _settingsService.AddOrUpdateInitialPriceAsync(price);
 
-            _log.Info("InitialPrice is updated",
-                context: $"Original trades: [{string.Join(", ", trades.Select(x => x.ToJson()))}]" +
-                         $"converted trades: [{string.Join(", ", convertedTrades.Select(x => x.ToJson()))}], " +
-                         $"new InitialPrice: {newInitialPrice}");
+            _log.Info("InitialPrice is updated", context: $"new InitialPrice: {price}");
         }
 
         private async Task<IReadOnlyList<Trade>> ConvertTrades(IReadOnlyList<Trade> trades)
@@ -154,17 +154,21 @@ namespace Lykke.Service.LP3.DomainServices
 
         public IReadOnlyList<LimitOrder> GetBaseOrders()
         {
-            return _ordersByAssetPairs.TryGetValue(_baseAssetPairId, out var orders) ? orders : new List<LimitOrder>();
+            return _ordersByAssetPairs.TryGetValue(_baseAssetPairId, out var orderBook)
+                ? orderBook.LimitOrders
+                : new List<LimitOrder>();
         }
 
         public IReadOnlyList<DependentLimitOrder> GetDependentOrders(string assetPairId)
         {
-            return _ordersByAssetPairs.TryGetValue(assetPairId, out var orders) ? orders.OfType<DependentLimitOrder>().ToList() : new List<DependentLimitOrder>();
+            return _ordersByAssetPairs.TryGetValue(assetPairId, out var orderBook)
+                ? orderBook.LimitOrders.OfType<DependentLimitOrder>().ToList()
+                : new List<DependentLimitOrder>();
         }
         
-        private void HandleTrade(Trade trade)
+        private async Task HandleTradeAsync(IReadOnlyList<Trade> trades)
         {
-            _log.Info("Trade is received", context: $"Trade: {trade.ToJson()}");
+            _log.Info("Trades are received", context: $"Trades: [{string.Join(", ", trades.Select( x=> x.ToJson()))}]");
 
             if (!_levelsService.GetLevels().Any())
             {
@@ -172,28 +176,24 @@ namespace Lykke.Service.LP3.DomainServices
                 return;
             }
 
-            var volume = trade.Volume;
-
-            if (trade.Type == TradeType.Sell)
-            {
-                volume *= -1;
-            }
+            decimal volume = trades.Select(x => x.Type == TradeType.Sell ? -x.Volume : x.Volume).Sum();
             
             while (volume != 0)
             {
-                volume = HandleVolume(volume);
+                volume = await HandleVolumeAsync(volume);
             }
             
-            _levelsService.SaveStatesAsync().GetAwaiter().GetResult();
+            await _levelsService.SaveStatesAsync();
         }
         
-        private decimal HandleVolume(decimal volume)
+        private async Task<decimal> HandleVolumeAsync(decimal volume)
         {
             if (volume < 0)
             {
                 var level = _levelsService.GetLevels().OrderBy(e => e.Sell).First();
 
                 volume = level.HandleSellVolume(volume);
+                await UpdateInitialPrice(level.Reference);
                 
                 _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
 
@@ -205,6 +205,7 @@ namespace Lykke.Service.LP3.DomainServices
                 var level = _levelsService.GetLevels().OrderByDescending(e => e.Buy).First();
 
                 volume = level.HandleBuyVolume(volume);
+                await UpdateInitialPrice(level.Reference);
                 
                 _log.Info($"Level {level.Name} is executed", context: $"Level state: {level.ToJson()}");
                 
@@ -244,7 +245,7 @@ namespace Lykke.Service.LP3.DomainServices
                 if (await BaseAssetPairWasDeleted())
                 {
                     _log.Info("Base pair deletion is detected, remove all orders");
-                    _ordersByAssetPairs[_baseAssetPairId] = new List<LimitOrder>();
+                    _ordersByAssetPairs[_baseAssetPairId] = new OrderBook();
                     _started = false;
                 }
                 else
@@ -252,23 +253,36 @@ namespace Lykke.Service.LP3.DomainServices
                     var levelOrders = _levelsService.GetOrders().ToList();
                     var additionalOrders = await _additionalVolumeService.GetOrdersAsync(levelOrders);
 
-                    _ordersByAssetPairs[_baseAssetPairId] = levelOrders.Union(additionalOrders).ToList();    
+
+                    var newBaseOrders = levelOrders.Union(additionalOrders).ToList();
+                    if (_ordersByAssetPairs.ContainsKey(_baseAssetPairId) && newBaseOrders.SequenceEqual(_ordersByAssetPairs[_baseAssetPairId].LimitOrders))
+                    {
+                        _ordersByAssetPairs[_baseAssetPairId].IsChanged = false;
+                    }
+                    else
+                    {
+                        _ordersByAssetPairs[_baseAssetPairId] = new OrderBook(newBaseOrders);
+                        _ordersByAssetPairs[_baseAssetPairId].LimitOrders.ForEach(x => x.AssetPairId = _baseAssetPairId); // TODO: fill in Levels?    
+                    }
                 }
                 
                 var dependentPairsSettings = (await _settingsService.GetDependentAssetPairsSettingsAsync()).ToList();
                 foreach (var pairSettings in dependentPairsSettings)
                 {
-                    _ordersByAssetPairs[pairSettings.AssetPairId] = _ordersByAssetPairs[_baseAssetPairId]
-                        .Select(x => (LimitOrder)_ordersConverter.ConvertAsync(x, pairSettings).GetAwaiter().GetResult()).ToList();
+                    _ordersByAssetPairs[pairSettings.AssetPairId] =
+                        new OrderBook(_ordersByAssetPairs[_baseAssetPairId].LimitOrders
+                            .Select(x =>
+                                (LimitOrder) _ordersConverter.ConvertAsync(x, pairSettings).GetAwaiter().GetResult())
+                            .ToList());
                 }
 
-                ClearDeletedDependentPairs(dependentPairsSettings);
+                ClearDeletedDependentPairs(dependentPairsSettings); // TODO: move to SettingsService
 
-                foreach (var ordersByAssetPair in _ordersByAssetPairs)
+                foreach (var ordersByAssetPair in _ordersByAssetPairs.Where(x => x.Value.IsChanged))
                 {
                     try
                     {
-                        await _lykkeExchange.ApplyAsync(ordersByAssetPair.Key, ordersByAssetPair.Value);
+                        await _lykkeExchange.ApplyAsync(ordersByAssetPair.Key, ordersByAssetPair.Value.LimitOrders);
                     }
                     catch (Exception e)
                     {
@@ -295,7 +309,7 @@ namespace Lykke.Service.LP3.DomainServices
             
             foreach (var dependentAssetPairId in deletedDependentAssetPairs)
             {
-                _ordersByAssetPairs[dependentAssetPairId] = new List<LimitOrder>();
+                _ordersByAssetPairs[dependentAssetPairId] = new OrderBook();
             }
         }
     }

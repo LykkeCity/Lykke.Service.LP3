@@ -25,5 +25,7 @@ namespace Lykke.Service.LP3.Client.Models.Orders
         public string OldId { get; set; }
         
         public string MultiOrderItemId { get; set; }
+        
+        public string LevelName { get; set; }
     }
 }

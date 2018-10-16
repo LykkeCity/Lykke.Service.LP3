@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
 using Common;
 using Common.Log;
 using Lykke.Common.Log;
@@ -17,26 +18,26 @@ using Lykke.Service.LP3.DomainServices.Extensions;
 
 namespace Lykke.Service.LP3.DomainServices.Exchanges
 {
-    public class LykkeExchange : ILykkeExchange
+    public class LykkeExchange : ILykkeExchange, IStartable
     {
         private readonly IMatchingEngineClient _matchingEngineClient;
         private readonly ISettingsService _settingsService;
-        private readonly IAssetPairsReadModelRepository _assetsService;
+        private readonly IAssetPairsReadModelRepository _assetPairsService;
+        private readonly IAssetsReadModelRepository _assetsService;
         private readonly ILog _log;
 
-        private readonly ConcurrentDictionary<string, List<LimitOrder>> _orders = 
-            new ConcurrentDictionary<string, List<LimitOrder>>();
-        
         private readonly Dictionary<string, Dictionary<Guid, string>> _idsMap = 
             new Dictionary<string, Dictionary<Guid, string>>(); // TODO: persist this map
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
             ISettingsService settingsService,
-            IAssetPairsReadModelRepository assetsService)
+            IAssetPairsReadModelRepository assetPairsService,
+            IAssetsReadModelRepository assetsService)
         {
             _matchingEngineClient = matchingEngineClient;
             _settingsService = settingsService;
+            _assetPairsService = assetPairsService;
             _assetsService = assetsService;
 
             _log = logFactory.CreateLog(this);
@@ -44,21 +45,22 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         
         public async Task ApplyAsync(string assetPairId, IReadOnlyList<LimitOrder> limitOrders)
         {
-            if (_orders.TryGetValue(assetPairId, out var orders) && orders != null && limitOrders.SequenceEqual(orders, new LimitOrdersComparer()))
-            {
-                _log.Info("New orders are the same as previously placed, don't replace");
-                return;
-            }
-            
             string walletId = _settingsService.GetWalletId();
 
             if (string.IsNullOrEmpty(walletId))
                 throw new Exception("WalletId is not set");
 
-            AssetPair assetPair = _assetsService.TryGetIfEnabled(assetPairId);
+            AssetPair assetPair = _assetPairsService.TryGetIfEnabled(assetPairId);
             if (assetPair == null)
             {
                 throw new Exception($"AssetService have returned null for asset pair {assetPairId}");
+            }
+
+            Asset baseAsset = _assetsService.TryGet(assetPair.BaseAssetId);
+            if (baseAsset == null)
+            {
+                throw new Exception(
+                    $"AssetService have returned null for base asset {assetPair.BaseAssetId} from pair {assetPairId}");
             }
 
             var mapExternalToInternal = new Dictionary<string, Guid>();
@@ -68,15 +70,31 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
             foreach (LimitOrder limitOrder in limitOrders)
             {
+                decimal roundedVolume = Math.Round(Math.Abs(limitOrder.Volume), baseAsset.Accuracy);
+                
+                if (roundedVolume < assetPair.MinVolume)
+                {
+                    _log.Warning("Order volume less then minimal", context: $"order: {limitOrder.ToJson()}, " +
+                                            $"rounded volume: {roundedVolume}, min volume: {assetPair.MinVolume}");
+
+                    limitOrder.Error = LimitOrderError.TooSmallVolume;
+                    limitOrder.ErrorMessage = $"Minimal volume for {assetPairId} is {assetPair.MinVolume}";
+                    continue;
+                }
+
                 var multiOrderItem = new MultiOrderItemModel
                 {
                     Id = Guid.NewGuid().ToString("D"),
                     OrderAction = limitOrder.TradeType.ToOrderAction(),
                     Price = (double) limitOrder.Price.TruncateDecimalPlaces(assetPair.Accuracy, toUpper: limitOrder.TradeType == TradeType.Sell),
-                    Volume = (double) Math.Round(Math.Abs(limitOrder.Volume), assetPair.InvertedAccuracy),
-                    OldId = _idsMap.ContainsKey(assetPairId) && _idsMap[assetPairId].ContainsKey(limitOrder.Id) ? _idsMap[assetPairId][limitOrder.Id] : null
+                    Volume = (double) roundedVolume,
+                    OldId = _idsMap.ContainsKey(assetPairId) && _idsMap[assetPairId].ContainsKey(limitOrder.Id) 
+                        ? _idsMap[assetPairId][limitOrder.Id] : null
                 };
 
+                limitOrder.MultiOrderItemId = multiOrderItem.Id;
+                limitOrder.OldId = multiOrderItem.OldId;
+                
                 multiOrderItems.Add(multiOrderItem);
 
                 mapExternalToInternal[multiOrderItem.Id] = limitOrder.Id;
@@ -102,7 +120,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 response = await _matchingEngineClient.PlaceMultiLimitOrderAsync(multiLimitOrder);
                 
                 _idsMap[assetPairId] = mapInternalToExternal;
-                _orders[assetPairId] = limitOrders.ToList();
             }
             catch (Exception exception)
             {
@@ -138,6 +155,29 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                         : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
                 }
             }
+        }
+
+        public void Start()
+        {
+//            _log.Info("Starting LykkeExchange. Restore persistent orders...");
+//
+//            try
+//            {
+//                var orders = _ordersService.GetAllAsync().GetAwaiter().GetResult();
+//
+//                foreach (var group in orders.GroupBy(x => x.AssetPairId))
+//                {
+//                    _orders.Add(group.Key, group.ToDictionary(x => x.Id, x => x));
+//                    
+//                    _log.Info($"Orders restored for {group.Key}", context: $"orders: [{string.Join(", ", group.Select(x => x.ToJson()))}]");
+//                }
+//            }
+//            catch (Exception e)
+//            {
+//                _log.Error(e, $"Error on restoring orders. LykkeExchange will start without persistent orders.");
+//            }
+            
+            // TODO: load just mappings
         }
     }
 }

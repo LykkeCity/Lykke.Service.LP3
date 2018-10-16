@@ -52,9 +52,9 @@ namespace Lykke.Service.LP3.Client
         
 
         [Get("/api/settings/walletId")]
-        string GetWalletId();
+        Task<string> GetWalletIdAsync();
 
         [Get("/api/settings/availableExchanges")]
-        IReadOnlyList<string> GetAvailableExchanges();
+        Task<IReadOnlyList<string>> GetAvailableExchangesAsync();
     }
 }

@@ -30,16 +30,16 @@ namespace Lykke.Service.LP3.Controllers
 
         [HttpGet("walletId")]
         [ProducesResponseType(typeof(string), (int) HttpStatusCode.OK)]
-        public string GetWalletId()
+        public Task<string> GetWalletIdAsync()
         {
-            return _settingsService.GetWalletId();
+            return Task.FromResult(_settingsService.GetWalletId());
         }
 
         [HttpGet("availableExchanges")]
         [ProducesResponseType(typeof(IReadOnlyList<string>), (int)HttpStatusCode.OK)]
-        public IReadOnlyList<string> GetAvailableExchanges()
+        public Task<IReadOnlyList<string>> GetAvailableExchangesAsync()
         {
-            return _settingsService.GetAvailableExternalExchanges();
+            return Task.FromResult(_settingsService.GetAvailableExternalExchanges());
         }
 
         #region BaseAssetPair

@@ -61,6 +61,10 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<CrossRateService>()
                 .As<ICrossRateService>()
                 .SingleInstance();
+
+            builder.RegisterType<LykkeAssetsService>()
+                .As<IAssetsService>()
+                .SingleInstance();
         }
     }
 }

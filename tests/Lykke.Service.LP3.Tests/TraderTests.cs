@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Logs;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
@@ -41,8 +42,18 @@ namespace Lykke.Service.LP3.Tests
                 .ReturnsAsync(new InitialPrice(1000m));
 
             var additionalVolumeServiceMock = new Mock<IAdditionalVolumeService>();
-            additionalVolumeServiceMock.Setup(x => x.GetOrdersAsync(It.IsAny<IEnumerable<LimitOrder>>()))
+            additionalVolumeServiceMock.Setup(x => x.GetOrdersAsync(It.IsAny<IEnumerable<LimitOrder>>(), It.IsAny<AssetPairInfo>()))
                 .ReturnsAsync(Enumerable.Empty<LimitOrder>());
+
+            var assetsServiceMock = new Mock<IAssetsService>();
+            assetsServiceMock.Setup(x => x.GetAssetPairInfo(It.IsAny<string>()))
+                .Returns(new AssetPairInfo
+                {
+                    AssetPairId = BaseAssetPairId,
+                    MinVolume = 0m,
+                    PriceAccuracy = 2,
+                    VolumeAccuracy = 2
+                });
             
             var trader = new Lp3Service(EmptyLogFactory.Instance, 
                 settingsServiceMock.Object,
@@ -50,7 +61,8 @@ namespace Lykke.Service.LP3.Tests
                 additionalVolumeServiceMock.Object,
                 Mock.Of<ILykkeExchange>(),
                 Mock.Of<IOrdersConverter>(),
-                Mock.Of<ITradesConverter>());
+                Mock.Of<ITradesConverter>(),
+                assetsServiceMock.Object);
             
             trader.Start();
 

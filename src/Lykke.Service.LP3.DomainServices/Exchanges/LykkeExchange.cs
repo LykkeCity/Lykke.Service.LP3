@@ -8,8 +8,6 @@ using Common.Log;
 using Lykke.Common.Log;
 using Lykke.MatchingEngine.Connector.Abstractions.Services;
 using Lykke.MatchingEngine.Connector.Models.Api;
-using Lykke.Service.Assets.Client.Models.v3;
-using Lykke.Service.Assets.Client.ReadModels;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
@@ -22,8 +20,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
     {
         private readonly IMatchingEngineClient _matchingEngineClient;
         private readonly ISettingsService _settingsService;
-        private readonly IAssetPairsReadModelRepository _assetPairsService;
-        private readonly IAssetsReadModelRepository _assetsService;
         private readonly IOrderIdsMappingRepository _orderIdsMappingRepository;
         private readonly ILog _log;
 
@@ -33,14 +29,10 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
             ISettingsService settingsService,
-            IAssetPairsReadModelRepository assetPairsService,
-            IAssetsReadModelRepository assetsService,
             IOrderIdsMappingRepository orderIdsMappingRepository)
         {
             _matchingEngineClient = matchingEngineClient;
             _settingsService = settingsService;
-            _assetPairsService = assetPairsService;
-            _assetsService = assetsService;
             _orderIdsMappingRepository = orderIdsMappingRepository;
 
             _log = logFactory.CreateLog(this);
@@ -53,43 +45,18 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             if (string.IsNullOrEmpty(walletId))
                 throw new Exception("WalletId is not set");
 
-            AssetPair assetPair = _assetPairsService.TryGetIfEnabled(assetPairId);
-            if (assetPair == null)
-            {
-                throw new Exception($"AssetService have returned null for asset pair {assetPairId}");
-            }
-
-            Asset baseAsset = _assetsService.TryGet(assetPair.BaseAssetId);
-            if (baseAsset == null)
-            {
-                throw new Exception(
-                    $"AssetService have returned null for base asset {assetPair.BaseAssetId} from pair {assetPairId}");
-            }
-
             var mapInternalToExternal = new Dictionary<Guid, string>();
             
             var multiOrderItems = new List<MultiOrderItemModel>();
 
             foreach (LimitOrder limitOrder in limitOrders)
             {
-                decimal roundedVolume = Math.Round(Math.Abs(limitOrder.Volume), baseAsset.Accuracy);
-                
-                if (roundedVolume < assetPair.MinVolume)
-                {
-                    _log.Warning("Order volume less then minimal", context: $"order: {limitOrder.ToJson()}, " +
-                                            $"rounded volume: {roundedVolume}, min volume: {assetPair.MinVolume}");
-
-                    limitOrder.Error = LimitOrderError.TooSmallVolume;
-                    limitOrder.ErrorMessage = $"Minimal volume for {assetPairId} is {assetPair.MinVolume}";
-                    continue;
-                }
-
                 var multiOrderItem = new MultiOrderItemModel
                 {
                     Id = Guid.NewGuid().ToString("D"),
                     OrderAction = limitOrder.TradeType.ToOrderAction(),
-                    Price = (double) limitOrder.Price.TruncateDecimalPlaces(assetPair.Accuracy, toUpper: limitOrder.TradeType == TradeType.Sell),
-                    Volume = (double) roundedVolume,
+                    Price = (double) limitOrder.Price,
+                    Volume = (double) limitOrder.Volume,
                     OldId = limitOrder.Id != default && _idsMap.ContainsKey(assetPairId) && _idsMap[assetPairId].ContainsKey(limitOrder.Id)
                         ? _idsMap[assetPairId][limitOrder.Id]
                         : null
@@ -109,7 +76,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             {
                 Id = Guid.NewGuid().ToString(),
                 ClientId = walletId,
-                AssetPairId = assetPair.Id,
+                AssetPairId = assetPairId,
                 CancelPreviousOrders = true,
                 Orders = multiOrderItems,
                 CancelMode = CancelMode.BothSides

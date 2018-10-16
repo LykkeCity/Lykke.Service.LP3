@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
 using Lykke.Common.Log;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
@@ -22,7 +23,8 @@ namespace Lykke.Service.LP3.DomainServices
             _log = logFactory.CreateLog(this);
         }
         
-        public async Task<IEnumerable<LimitOrder>> GetOrdersAsync(IEnumerable<LimitOrder> currentOrders)
+        public async Task<IEnumerable<LimitOrder>> GetOrdersAsync(IEnumerable<LimitOrder> currentOrders,
+            AssetPairInfo baseAssetPairInfo)
         {
             if (!TryGetBaseBidAsk(currentOrders.ToList(), out var bid, out var ask))
             {
@@ -35,8 +37,8 @@ namespace Lykke.Service.LP3.DomainServices
                 return Enumerable.Empty<LimitOrder>();
             }
 
-            var asks = GetOrders(ask, settings, TradeType.Sell);
-            var bids = GetOrders(bid, settings, TradeType.Buy);
+            var asks = GetOrders(ask, settings, TradeType.Sell, baseAssetPairInfo);
+            var bids = GetOrders(bid, settings, TradeType.Buy, baseAssetPairInfo);
 
             return asks.Union(bids);
         }
@@ -65,7 +67,8 @@ namespace Lykke.Service.LP3.DomainServices
             return true;
         }
 
-        private IEnumerable<LimitOrder> GetOrders(decimal worstPrice, AdditionalVolumeSettings settings, TradeType tradeType)
+        private IEnumerable<LimitOrder> GetOrders(decimal worstPrice, AdditionalVolumeSettings settings, 
+            TradeType tradeType, AssetPairInfo baseAssetPairInfo)
         {
             decimal price = worstPrice;
             
@@ -75,7 +78,10 @@ namespace Lykke.Service.LP3.DomainServices
                     ? (decimal) Math.Exp(Math.Log((double) price) + (double) settings.Delta)
                     : (decimal) Math.Exp(Math.Log((double) price) - (double) settings.Delta);
                 
-                yield return new LimitOrder(Guid.Empty, price, settings.Volume, tradeType);
+                var order = new LimitOrder(Guid.Empty, price, settings.Volume, tradeType);
+                order.Round(baseAssetPairInfo);
+
+                yield return order;
             }
         }
     }

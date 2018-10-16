@@ -9,10 +9,10 @@ using Common;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
-using Lykke.Service.LP3.Domain.Settings;
 
 namespace Lykke.Service.LP3.DomainServices
 {
@@ -24,6 +24,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly ILykkeExchange _lykkeExchange;
         private readonly IOrdersConverter _ordersConverter;
         private readonly ITradesConverter _tradesConverter;
+        private readonly IAssetsService _assetsService;
         private readonly ILog _log;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
@@ -33,6 +34,7 @@ namespace Lykke.Service.LP3.DomainServices
             new ConcurrentDictionary<string, OrderBook>();
         
         private string _baseAssetPairId;
+        private AssetPairInfo _baseAssetPairInfo;
 
         public Lp3Service(ILogFactory logFactory,
             ISettingsService settingsService,
@@ -40,7 +42,8 @@ namespace Lykke.Service.LP3.DomainServices
             IAdditionalVolumeService additionalVolumeService,
             ILykkeExchange lykkeExchange,
             IOrdersConverter ordersConverter,
-            ITradesConverter tradesConverter)
+            ITradesConverter tradesConverter,
+            IAssetsService assetsService)
         {
             _settingsService = settingsService;
             _levelsService = levelsService;
@@ -48,6 +51,7 @@ namespace Lykke.Service.LP3.DomainServices
             _lykkeExchange = lykkeExchange;
             _ordersConverter = ordersConverter;
             _tradesConverter = tradesConverter;
+            _assetsService = assetsService;
             _log = logFactory.CreateLog(this);
         }
         
@@ -70,6 +74,13 @@ namespace Lykke.Service.LP3.DomainServices
             if (_baseAssetPairId == null)
             {
                 _log.Info("No baseAssetPairId to start algorithm, waiting for adding it via API");
+                return;
+            }
+
+            _baseAssetPairInfo = _assetsService.GetAssetPairInfo(_baseAssetPairId);
+            if (_baseAssetPairInfo == null)
+            {
+                _log.Error($"No assetPairInfo for base asset pair {_baseAssetPairId}");
                 return;
             }
 
@@ -245,44 +256,35 @@ namespace Lykke.Service.LP3.DomainServices
                 if (await BaseAssetPairWasDeleted())
                 {
                     _log.Info("Base pair deletion is detected, remove all orders");
-                    _ordersByAssetPairs[_baseAssetPairId] = new OrderBook();
                     _started = false;
+                    return;
+                }
+            
+                var baseOrderBook = await GenerateBaseOrderBook();
+                _ordersByAssetPairs.TryGetValue(_baseAssetPairId, out var currentBaseOrderBook);
+
+                if (currentBaseOrderBook != null && baseOrderBook.Equal(currentBaseOrderBook))
+                {
+                    currentBaseOrderBook.IsChanged = false;
                 }
                 else
                 {
-                    var levelOrders = _levelsService.GetOrders().ToList();
-                    var additionalOrders = await _additionalVolumeService.GetOrdersAsync(levelOrders);
-
-
-                    var newBaseOrders = levelOrders.Union(additionalOrders).ToList();
-                    if (_ordersByAssetPairs.ContainsKey(_baseAssetPairId) && newBaseOrders.SequenceEqual(_ordersByAssetPairs[_baseAssetPairId].LimitOrders))
-                    {
-                        _ordersByAssetPairs[_baseAssetPairId].IsChanged = false;
-                    }
-                    else
-                    {
-                        _ordersByAssetPairs[_baseAssetPairId] = new OrderBook(newBaseOrders);
-                        _ordersByAssetPairs[_baseAssetPairId].LimitOrders.ForEach(x => x.AssetPairId = _baseAssetPairId); // TODO: fill in Levels?    
-                    }
+                    _ordersByAssetPairs[_baseAssetPairId] = baseOrderBook;
                 }
                 
                 var dependentPairsSettings = (await _settingsService.GetDependentAssetPairsSettingsAsync()).ToList();
                 foreach (var pairSettings in dependentPairsSettings)
                 {
-                    _ordersByAssetPairs[pairSettings.AssetPairId] =
-                        new OrderBook(_ordersByAssetPairs[_baseAssetPairId].LimitOrders
-                            .Select(x =>
-                                (LimitOrder) _ordersConverter.ConvertAsync(x, pairSettings).GetAwaiter().GetResult())
-                            .ToList());
+                    IReadOnlyList<LimitOrder> convertedOrders = await _ordersConverter.ConvertAsync(_ordersByAssetPairs[_baseAssetPairId].LimitOrders, pairSettings);
+                    _ordersByAssetPairs[pairSettings.AssetPairId] = new OrderBook(convertedOrders);
                 }
-
-                ClearDeletedDependentPairs(dependentPairsSettings); // TODO: move to SettingsService
 
                 foreach (var ordersByAssetPair in _ordersByAssetPairs.Where(x => x.Value.IsChanged))
                 {
                     try
                     {
-                        await _lykkeExchange.ApplyAsync(ordersByAssetPair.Key, ordersByAssetPair.Value.LimitOrders);
+                        await _lykkeExchange.ApplyAsync(ordersByAssetPair.Key, 
+                            ordersByAssetPair.Value.LimitOrders.Where(x => x.Error == LimitOrderError.None).ToList());
                     }
                     catch (Exception e)
                     {
@@ -296,21 +298,18 @@ namespace Lykke.Service.LP3.DomainServices
             }
         }
 
+        private async Task<OrderBook> GenerateBaseOrderBook()
+        {
+            var levelOrders = _levelsService.GetOrders(_baseAssetPairInfo).ToList();
+            var additionalOrders = await _additionalVolumeService.GetOrdersAsync(levelOrders, _baseAssetPairInfo);
+            var baseOrders = levelOrders.Union(additionalOrders).ToList();
+            
+            return new OrderBook(baseOrders);
+        }
+
         private async Task<bool> BaseAssetPairWasDeleted()
         {
             return await _settingsService.GetBaseAssetPairSettingsAsync() == null;
-        }
-
-        private void ClearDeletedDependentPairs(IEnumerable<AssetPairSettings> dependentPairsSettings)
-        {
-            var allEnabledDependentAssetPairs = dependentPairsSettings.Select(x => x.AssetPairId);
-            var deletedDependentAssetPairs =
-                _ordersByAssetPairs.Keys.Where(x => !allEnabledDependentAssetPairs.Contains(x) && x != _baseAssetPairId);
-            
-            foreach (var dependentAssetPairId in deletedDependentAssetPairs)
-            {
-                _ordersByAssetPairs[dependentAssetPairId] = new OrderBook();
-            }
         }
     }
 }

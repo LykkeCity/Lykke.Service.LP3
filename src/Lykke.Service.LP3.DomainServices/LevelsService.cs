@@ -7,6 +7,7 @@ using Common;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
@@ -75,9 +76,9 @@ namespace Lykke.Service.LP3.DomainServices
             return _levels;
         }
         
-        public IEnumerable<LimitOrder> GetOrders()
+        public IEnumerable<LimitOrder> GetOrders(AssetPairInfo assetPairInfo)
         {
-            return _levels.SelectMany(x => x.GetOrders());
+            return _levels.SelectMany(x => x.GetOrders(assetPairInfo));
         }
         
         private Level FindLevelByName(string name)

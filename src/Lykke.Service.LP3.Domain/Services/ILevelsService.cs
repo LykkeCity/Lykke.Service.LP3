@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
 
 namespace Lykke.Service.LP3.Domain.Services
@@ -18,6 +19,6 @@ namespace Lykke.Service.LP3.Domain.Services
         
         void UpdateReference(decimal lastPrice);
 
-        IEnumerable<LimitOrder> GetOrders();
+        IEnumerable<LimitOrder> GetOrders(AssetPairInfo assetPairInfo);
     }
 }

@@ -1,11 +1,8 @@
-using System.Threading.Tasks;
-using Lykke.Logs;
 using Lykke.Service.LP3.Domain;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
-using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
 using Lykke.Service.LP3.DomainServices;
-using Moq;
 using Xunit;
 
 namespace Lykke.Service.LP3.Tests
@@ -13,7 +10,7 @@ namespace Lykke.Service.LP3.Tests
     public class OrderConverterTests
     {
         [Fact]
-        public async Task Test()
+        public void Test()
         {
             var baseAssetPair = "LKKCHF";
 
@@ -34,17 +31,20 @@ namespace Lykke.Service.LP3.Tests
                 Bid = 1.9m
             };
             
-            var crossRateServiceMock = new Mock<ICrossRateService>();
-            crossRateServiceMock.Setup(x => x.GetLastTickPriceAsync(dependentPairSettings.CrossInstrumentSource,
-                    dependentPairSettings.CrossInstrumentAssetPair))
-                .ReturnsAsync(crossTickPrice);
+            var assetPairInfo = new AssetPairInfo
+            {
+                AssetPairId = baseAssetPair,
+                MinVolume = 0m,
+                PriceAccuracy = 2,
+                VolumeAccuracy = 2
+            };
             
-            var converter = new OrdersConverter(EmptyLogFactory.Instance, crossRateServiceMock.Object);
+            var converter = new OrdersConverterLogic();
 
             var baseOrder = new LimitOrder(price: 100m, volume: 10m, tradeType: TradeType.Sell);
 
 
-            var convertedOrder = await converter.ConvertAsync(baseOrder, dependentPairSettings);
+            var convertedOrder = converter.Convert(baseOrder, dependentPairSettings, crossTickPrice, assetPairInfo);
             
             Assert.NotNull(convertedOrder);
             Assert.Equal(baseOrder.Volume, convertedOrder.Volume);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
 
 namespace Lykke.Service.LP3.Domain
@@ -17,10 +18,8 @@ namespace Lykke.Service.LP3.Domain
         }
 
         public Level(string name, decimal delta, decimal volume, decimal volumeBuy, decimal volumeSell, 
-            decimal inventory, decimal oppositeInventory,
-            decimal reference,
-            Guid sellOrderId, Guid buyOrderId)
-         : this(name, delta, volume)
+            decimal inventory, decimal oppositeInventory, decimal reference, Guid sellOrderId, Guid buyOrderId)
+            : this(name, delta, volume)
         {
             VolumeBuy = volumeBuy;
             VolumeSell = volumeSell;
@@ -47,13 +46,15 @@ namespace Lykke.Service.LP3.Domain
         public decimal Sell => (decimal) Math.Exp(Math.Log((double) Reference) + (double) Delta);
         public decimal Buy => (decimal) Math.Exp(Math.Log((double) Reference) - (double) Delta);
 
-        public IEnumerable<LimitOrder> GetOrders()
+        public IEnumerable<LimitOrder> GetOrders(AssetPairInfo assetPairInfo)
         {
-            return new[]
-            {
-                new LimitOrder(SellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell) { LevelName = Name }, 
-                new LimitOrder(BuyOrderId, Buy, VolumeBuy, TradeType.Buy) { LevelName = Name } 
-            };
+            var sellOrder = new LimitOrder(SellOrderId, Sell, Math.Abs(VolumeSell), TradeType.Sell) {LevelName = Name};
+            sellOrder.Round(assetPairInfo);
+
+            var buyOrder = new LimitOrder(BuyOrderId, Buy, VolumeBuy, TradeType.Buy) {LevelName = Name};
+            buyOrder.Round(assetPairInfo);
+            
+            return new[] { sellOrder, buyOrder };
         }
 
 

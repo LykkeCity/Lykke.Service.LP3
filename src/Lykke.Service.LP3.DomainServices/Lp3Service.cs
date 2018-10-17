@@ -25,6 +25,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly IOrdersConverter _ordersConverter;
         private readonly ITradesConverter _tradesConverter;
         private readonly IAssetsService _assetsService;
+        private readonly IBalanceService _balanceService;
         private readonly ILog _log;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
@@ -43,7 +44,8 @@ namespace Lykke.Service.LP3.DomainServices
             ILykkeExchange lykkeExchange,
             IOrdersConverter ordersConverter,
             ITradesConverter tradesConverter,
-            IAssetsService assetsService)
+            IAssetsService assetsService,
+            IBalanceService balanceService)
         {
             _settingsService = settingsService;
             _levelsService = levelsService;
@@ -52,6 +54,7 @@ namespace Lykke.Service.LP3.DomainServices
             _ordersConverter = ordersConverter;
             _tradesConverter = tradesConverter;
             _assetsService = assetsService;
+            _balanceService = balanceService;
             _log = logFactory.CreateLog(this);
         }
         
@@ -276,7 +279,20 @@ namespace Lykke.Service.LP3.DomainServices
                 foreach (var pairSettings in dependentPairsSettings)
                 {
                     IReadOnlyList<LimitOrder> convertedOrders = await _ordersConverter.ConvertAsync(_ordersByAssetPairs[_baseAssetPairId].LimitOrders, pairSettings);
-                    _ordersByAssetPairs[pairSettings.AssetPairId] = new OrderBook(convertedOrders);
+
+                    await ValidateBalances(convertedOrders, pairSettings.AssetPairId);
+                    
+                    var orderBook = new OrderBook(convertedOrders);
+
+                    if (_ordersByAssetPairs.TryGetValue(pairSettings.AssetPairId, out var currentOrderBook) &&
+                        orderBook.Equal(currentOrderBook))
+                    {
+                        currentOrderBook.IsChanged = false;
+                    }
+                    else
+                    {
+                        _ordersByAssetPairs[pairSettings.AssetPairId] = orderBook;    
+                    }
                 }
 
                 foreach (var ordersByAssetPair in _ordersByAssetPairs.Where(x => x.Value.IsChanged))
@@ -304,9 +320,56 @@ namespace Lykke.Service.LP3.DomainServices
             var additionalOrders = await _additionalVolumeService.GetOrdersAsync(levelOrders, _baseAssetPairInfo);
             var baseOrders = levelOrders.Union(additionalOrders).ToList();
             
+            await ValidateBalances(baseOrders, _baseAssetPairId);
+            
             return new OrderBook(baseOrders);
         }
 
+        private async Task ValidateBalances(IReadOnlyList<LimitOrder> orders, string assetPairId)
+        {
+            var assetPairInfo = _assetsService.GetAssetPairInfo(assetPairId);
+            
+            try
+            {
+                var baseBalance = await _balanceService.GetByAssetIdAsync(assetPairInfo.BaseAssetId);
+                var balance = baseBalance.Amount;
+
+                foreach (var order in orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price))
+                {
+                    balance -= order.Volume;
+    
+                    if (balance < 0)
+                    {
+                        order.Error = LimitOrderError.NotEnoughFunds;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Can't validate balances for sell orders", context: $"assetPairInfo: {assetPairInfo.ToJson()}");
+            }
+            
+            try
+            {
+                var quoteBalance = await _balanceService.GetByAssetIdAsync(assetPairInfo.QuoteAssetId);
+                var balance = quoteBalance.Available;
+
+                foreach (var order in orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price))
+                {
+                    balance -= order.Volume * order.Price;
+                
+                    if (balance < 0)
+                    {
+                        order.Error = LimitOrderError.NotEnoughFunds;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Can't validate balances for buy orders", context: $"assetPairInfo: {assetPairInfo.ToJson()}");
+            }
+        }
+        
         private async Task<bool> BaseAssetPairWasDeleted()
         {
             return await _settingsService.GetBaseAssetPairSettingsAsync() == null;

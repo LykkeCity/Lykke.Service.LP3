@@ -44,7 +44,9 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 DisplayName = assetPair.Name,
                 MinVolume = assetPair.MinVolume,
                 PriceAccuracy = assetPair.Accuracy,
-                VolumeAccuracy = baseAsset.Accuracy
+                VolumeAccuracy = baseAsset.Accuracy,
+                BaseAssetId = assetPair.BaseAssetId,
+                QuoteAssetId = assetPair.QuotingAssetId
             };
         }
 

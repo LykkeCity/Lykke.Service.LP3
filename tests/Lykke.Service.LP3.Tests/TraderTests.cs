@@ -52,8 +52,14 @@ namespace Lykke.Service.LP3.Tests
                     AssetPairId = BaseAssetPairId,
                     MinVolume = 0m,
                     PriceAccuracy = 2,
-                    VolumeAccuracy = 2
+                    VolumeAccuracy = 2,
+                    BaseAssetId = "LKK",
+                    QuoteAssetId = "CHF"
                 });
+
+//            var balancesServiceMock = new Mock<IBalanceService>();
+//            balancesServiceMock.Setup(x => x.GetByAssetIdAsync("LKK"))
+//                .ReturnsAsync(new Balance("LKK", 10, 0));
             
             var trader = new Lp3Service(EmptyLogFactory.Instance, 
                 settingsServiceMock.Object,
@@ -62,7 +68,8 @@ namespace Lykke.Service.LP3.Tests
                 Mock.Of<ILykkeExchange>(),
                 Mock.Of<IOrdersConverter>(),
                 Mock.Of<ITradesConverter>(),
-                assetsServiceMock.Object);
+                assetsServiceMock.Object,
+                Mock.Of<IBalanceService>());
             
             trader.Start();
 

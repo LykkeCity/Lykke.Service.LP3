@@ -11,5 +11,9 @@ namespace Lykke.Service.LP3.Domain.Assets
         public decimal MinVolume { get; set; }
         
         public string DisplayName { get; set; }
+        
+        public string BaseAssetId { get; set; }
+        
+        public string QuoteAssetId { get; set; }
     }
 }

@@ -21,6 +21,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly IAdditionalVolumeSettingsRepository _additionalVolumeSettingsRepository;
         private readonly IInitialPriceRepository _initialPriceRepository;
         private readonly ILykkeExchange _lykkeExchange;
+        private readonly ILevelsService _levelsService;
         private readonly List<string> _availableExternalExchanges;
         private readonly ILog _log;
         
@@ -32,6 +33,7 @@ namespace Lykke.Service.LP3.DomainServices
             IAdditionalVolumeSettingsRepository additionalVolumeSettingsRepository,
             IInitialPriceRepository initialPriceRepository,
             ILykkeExchange lykkeExchange,
+            ILevelsService levelsService,
             IEnumerable<string> availableExternalExchanges)
         {
             _walletId = walletId;
@@ -39,6 +41,7 @@ namespace Lykke.Service.LP3.DomainServices
             _additionalVolumeSettingsRepository = additionalVolumeSettingsRepository;
             _initialPriceRepository = initialPriceRepository;
             _lykkeExchange = lykkeExchange;
+            _levelsService = levelsService;
             _availableExternalExchanges = availableExternalExchanges?.ToList() ?? new List<string>();
             _log = logFactory.CreateLog(this);
         }
@@ -87,9 +90,10 @@ namespace Lykke.Service.LP3.DomainServices
             return _initialPriceRepository.GetAsync();
         }
 
-        public Task AddOrUpdateInitialPriceAsync(decimal price)
+        public async Task AddOrUpdateInitialPriceAsync(decimal price)
         {
-            return _initialPriceRepository.AddOrUpdateAsync(price);
+            await _initialPriceRepository.AddOrUpdateAsync(price);
+            _levelsService.UpdateReference(price, force: true);
         }
 
         public Task DeleteInitialPriceAsync()

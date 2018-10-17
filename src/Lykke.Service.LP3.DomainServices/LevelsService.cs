@@ -86,11 +86,11 @@ namespace Lykke.Service.LP3.DomainServices
             return _levels.SingleOrDefault(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
         }
 
-        public void UpdateReference(decimal lastPrice)
+        public void UpdateReference(decimal lastPrice, bool force = false)
         {
             _lastPrice = lastPrice;
             
-            foreach (var level in _levels.Where(x => x.Reference == 0))
+            foreach (var level in _levels.Where(x => force || x.Reference == 0))
             {
                 level.UpdateReference(lastPrice);
             }

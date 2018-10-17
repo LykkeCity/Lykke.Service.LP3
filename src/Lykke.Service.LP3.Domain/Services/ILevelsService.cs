@@ -17,7 +17,7 @@ namespace Lykke.Service.LP3.Domain.Services
 
         IReadOnlyList<Level> GetLevels();
         
-        void UpdateReference(decimal lastPrice);
+        void UpdateReference(decimal lastPrice, bool force = false);
 
         IEnumerable<LimitOrder> GetOrders(AssetPairInfo assetPairInfo);
     }

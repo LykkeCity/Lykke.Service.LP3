@@ -56,14 +56,10 @@ namespace Lykke.Service.LP3.Domain
             
             return new[] { sellOrder, buyOrder };
         }
-
-
+        
         public void UpdateReference(decimal price)
         {
             Reference = price;
-            
-            SellOrderId = Guid.NewGuid();
-            BuyOrderId = Guid.NewGuid();
         }
         
         public void UpdateSettings(decimal delta, decimal volume)

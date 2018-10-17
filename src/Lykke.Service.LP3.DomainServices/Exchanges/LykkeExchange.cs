@@ -120,6 +120,12 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 limitOrder.ErrorMessage = limitOrder.Error != LimitOrderError.Unknown 
                     ? orderStatus.StatusReason
                     : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";
+
+                // if order is not places, don't keep its it in mapping: it will be nothing to replace next time
+                if (limitOrder.Error != LimitOrderError.None && limitOrder.Id != default)
+                {
+                    mapInternalToExternal.Remove(limitOrder.Id);
+                }
             }
 
             await PersistMapping(assetPairId);

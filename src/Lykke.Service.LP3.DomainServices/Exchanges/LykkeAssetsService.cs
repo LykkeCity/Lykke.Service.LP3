@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.Assets.Client.Models.v3;
@@ -12,14 +13,17 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
     {
         private readonly IAssetPairsReadModelRepository _assetPairsService;
         private readonly IAssetsReadModelRepository _assetsService;
+        private readonly IAssetLinkService _assetLinkService;
         private readonly ILog _log;
 
         public LykkeAssetsService(ILogFactory logFactory,
             IAssetPairsReadModelRepository assetPairsService,
-            IAssetsReadModelRepository assetsService)
+            IAssetsReadModelRepository assetsService,
+            IAssetLinkService assetLinkService)
         {
             _assetPairsService = assetPairsService;
             _assetsService = assetsService;
+            _assetLinkService = assetLinkService;
             _log = logFactory.CreateLog(this);
         }
         
@@ -37,6 +41,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 throw new Exception(
                     $"AssetService have returned null for base asset {assetPair.BaseAssetId} from pair {assetPairId}");
             }
+
+            var assetLinks = _assetLinkService.GetAllAsync().GetAwaiter().GetResult();
             
             return new AssetPairInfo
             {
@@ -45,8 +51,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 MinVolume = assetPair.MinVolume,
                 PriceAccuracy = assetPair.Accuracy,
                 VolumeAccuracy = baseAsset.Accuracy,
-                BaseAssetId = assetPair.BaseAssetId,
-                QuoteAssetId = assetPair.QuotingAssetId
+                BaseAssetId = assetLinks.SingleOrDefault(x => x.ExternalAssetId == assetPair.BaseAssetId)?.AssetId ?? assetPair.BaseAssetId,
+                QuoteAssetId = assetLinks.SingleOrDefault(x => x.ExternalAssetId == assetPair.QuotingAssetId)?.AssetId ?? assetPair.QuotingAssetId
             };
         }
 

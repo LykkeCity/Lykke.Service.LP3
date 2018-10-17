@@ -11,7 +11,6 @@ using Lykke.MatchingEngine.Connector.Models.Api;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
-using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.DomainServices.Extensions;
 
 namespace Lykke.Service.LP3.DomainServices.Exchanges
@@ -19,8 +18,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
     public class LykkeExchange : ILykkeExchange, IStartable
     {
         private readonly IMatchingEngineClient _matchingEngineClient;
-        private readonly ISettingsService _settingsService;
         private readonly IOrderIdsMappingRepository _orderIdsMappingRepository;
+        private readonly string _walletId;
         private readonly ILog _log;
 
         private readonly Dictionary<string, Dictionary<Guid, string>> _idsMap = 
@@ -28,21 +27,20 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         
         public LykkeExchange(ILogFactory logFactory,
             IMatchingEngineClient matchingEngineClient,
-            ISettingsService settingsService,
-            IOrderIdsMappingRepository orderIdsMappingRepository)
+            IOrderIdsMappingRepository orderIdsMappingRepository, 
+            string walletId)
         {
             _matchingEngineClient = matchingEngineClient;
-            _settingsService = settingsService;
+            
             _orderIdsMappingRepository = orderIdsMappingRepository;
+            _walletId = walletId;
 
             _log = logFactory.CreateLog(this);
         }
         
         public async Task ApplyAsync(string assetPairId, IReadOnlyList<LimitOrder> limitOrders)
         {
-            string walletId = _settingsService.GetWalletId();
-
-            if (string.IsNullOrEmpty(walletId))
+            if (string.IsNullOrEmpty(_walletId))
                 throw new Exception("WalletId is not set");
 
             var mapInternalToExternal = new Dictionary<Guid, string>();
@@ -75,7 +73,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             var multiLimitOrder = new MultiLimitOrderModel
             {
                 Id = Guid.NewGuid().ToString(),
-                ClientId = walletId,
+                ClientId = _walletId,
                 AssetPairId = assetPairId,
                 CancelPreviousOrders = true,
                 Orders = multiOrderItems,

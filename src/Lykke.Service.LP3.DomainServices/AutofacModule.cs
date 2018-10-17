@@ -41,6 +41,7 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<LykkeExchange>()
                 .As<ILykkeExchange>()
                 .As<IStartable>()
+                .WithParameter(new NamedParameter("walletId", _walletId))
                 .SingleInstance();
 
             builder.RegisterType<LykkeTradeService>()

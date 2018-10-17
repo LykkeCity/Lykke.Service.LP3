@@ -41,6 +41,15 @@ LP3Service:
     types:
       - Optional
 
+  Timers:
+    BalanceTimer:
+      settings-key: LP3-Timers-BalanceTimer
+
+  AssetMappings:
+    settings-key: LP3-AssetMappings
+    types:
+      - JsonArray
+
 MatchingEngineClient:
   IpEndpoint:
     Port:

@@ -21,5 +21,7 @@ namespace Lykke.Service.LP3.Client
         ITradesApi TradesApi { get; }
         
         ICrossTickPricesApi CrossTickPricesApi { get; }
+
+        IBalancesApi BalancesApi { get; }
     }
 }

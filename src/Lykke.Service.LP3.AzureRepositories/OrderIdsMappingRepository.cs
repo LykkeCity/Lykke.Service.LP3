@@ -49,6 +49,11 @@ namespace Lykke.Service.LP3.AzureRepositories
                 x => x.ToDictionary(e => e.InternalId, e => e.MultiOrderItemId));
         }
 
+        public async Task DeleteMappingsAsync()
+        {
+            await _storage.DeleteAsync();
+        }
+
         private string GetPartitionKey(string assetPairId) => assetPairId.ToUpperInvariant();
 
         private string GetRowKey(Guid id) => id.ToString("N");

@@ -9,5 +9,6 @@ namespace Lykke.Service.LP3.Domain.Repositories
         Task PersistMapping(string assetPairId, Dictionary<Guid, string> mapping);
 
         Task<Dictionary<string, Dictionary<Guid, string>>> RestoreMapping();
+        Task DeleteMappingsAsync();
     }
 }

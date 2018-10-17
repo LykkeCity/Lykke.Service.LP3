@@ -183,6 +183,12 @@ namespace Lykke.Service.LP3.Controllers
 
         #endregion
 
+        [HttpPost("resetIdsMapping")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task ResetIdsMappingAsync()
+        {
+            await _settingsService.ResetIdsMappingAsync();
+        }
 
         #region AdditionalVolumeSettings
         

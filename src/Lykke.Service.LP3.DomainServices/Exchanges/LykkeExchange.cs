@@ -131,6 +131,14 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             await PersistMapping(assetPairId);
         }
 
+        public async Task ResetIdsMappingAsync()
+        {
+            await _orderIdsMappingRepository.DeleteMappingsAsync();
+            _idsMap.Clear();
+            
+            _log.Info("All ids mappings were deleted");
+        }
+
         private async Task PersistMapping(string assetPairId)
         {
             try

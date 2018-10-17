@@ -59,5 +59,8 @@ namespace Lykke.Service.LP3.Client
 
         [Get("/api/settings/availableExchanges")]
         Task<IReadOnlyList<string>> GetAvailableExchangesAsync();
+
+        [Post("/api/settings/resetIdsMapping")]
+        Task ResetIdsMappingAsync();
     }
 }

@@ -23,5 +23,6 @@ namespace Lykke.Service.LP3.Domain.Services
         Task<InitialPrice> GetInitialPriceAsync();
         Task AddOrUpdateInitialPriceAsync(decimal price);
         Task DeleteInitialPriceAsync();
+        Task ResetIdsMappingAsync();
     }
 }

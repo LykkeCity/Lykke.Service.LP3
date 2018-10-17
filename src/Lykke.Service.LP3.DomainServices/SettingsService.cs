@@ -100,7 +100,12 @@ namespace Lykke.Service.LP3.DomainServices
         {
             return _initialPriceRepository.DeleteAsync();
         }
-        
+
+        public async Task ResetIdsMappingAsync()
+        {
+            await _lykkeExchange.ResetIdsMappingAsync();
+        }
+
 
         public async Task UpdateDependentAssetPairSettingsAsync(AssetPairSettings settings)
         {

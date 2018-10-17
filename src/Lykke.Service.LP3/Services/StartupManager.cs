@@ -2,6 +2,7 @@
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Sdk;
+using Lykke.Service.LP3.DomainServices.Timers;
 
 namespace Lykke.Service.LP3.Services
 {
@@ -14,16 +15,20 @@ namespace Lykke.Service.LP3.Services
 
     public class StartupManager : IStartupManager
     {
+        private readonly BalancesTimer _balancesTimer;
         private readonly ILog _log;
 
-        public StartupManager(ILogFactory logFactory)
+        public StartupManager(
+            BalancesTimer balancesTimer,
+            ILogFactory logFactory)
         {
+            _balancesTimer = balancesTimer;
             _log = logFactory.CreateLog(this);
         }
 
         public async Task StartAsync()
         {
-            // TODO: Implement your startup logic here. Good idea is to log every step
+            _balancesTimer.Start();
 
             await Task.CompletedTask;
         }

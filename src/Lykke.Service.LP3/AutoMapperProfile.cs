@@ -1,5 +1,6 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Lykke.Service.LP3.Client.Models;
+using Lykke.Service.LP3.Client.Models.Balances;
 using Lykke.Service.LP3.Client.Models.Levels;
 using Lykke.Service.LP3.Client.Models.Orders;
 using Lykke.Service.LP3.Client.Models.Settings;
@@ -38,6 +39,8 @@ namespace Lykke.Service.LP3
 
             CreateMap<BaseAssetPairSettingsModel, AssetPairSettings>(MemberList.Source);
             CreateMap<AssetPairSettings, BaseAssetPairSettingsModel>(MemberList.Destination);
+
+            CreateMap<Balance, AssetBalanceModel>(MemberList.Destination);
         }
     }
 }

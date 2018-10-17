@@ -5,6 +5,7 @@ using Common;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Sdk;
+using Lykke.Service.LP3.DomainServices.Timers;
 
 namespace Lykke.Service.LP3.Services
 {
@@ -14,18 +15,24 @@ namespace Lykke.Service.LP3.Services
     // all periodical handler was stopped, and so on.
     public class ShutdownManager : IShutdownManager
     {
+        private readonly BalancesTimer _balancesTimer;
         private readonly ILog _log;
         private readonly IEnumerable<IStopable> _items;
 
-        public ShutdownManager(ILogFactory logFactory, IEnumerable<IStopable> items)
+        public ShutdownManager(
+            BalancesTimer balancesTimer,
+            ILogFactory logFactory,
+            IEnumerable<IStopable> items)
         {
+            _balancesTimer = balancesTimer;
             _log = logFactory.CreateLog(this);
             _items = items;
         }
 
         public async Task StopAsync()
         {
-            // TODO: Implement your shutdown logic here. Good idea is to log every step
+            _balancesTimer.Stop();
+
             foreach (var item in _items)
             {
                 try

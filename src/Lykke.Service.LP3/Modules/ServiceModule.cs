@@ -28,7 +28,9 @@ namespace Lykke.Service.LP3.Modules
         {
             builder.RegisterModule(new DomainServices.AutofacModule(
                 _appSettings.CurrentValue.LP3Service.WalletId,
-                _appSettings.CurrentValue.LP3Service.ExternalExchanges?.Select(x => x.Name)));
+                _appSettings.CurrentValue.LP3Service.ExternalExchanges?.Select(x => x.Name),
+                _appSettings.CurrentValue.LP3Service.AssetMappings,
+                _appSettings.CurrentValue.LP3Service.Timers));
 
             builder.RegisterModule(new AutofacModule(_appSettings.Nested(x => x.LP3Service.Db.DataConnectionString)));
             

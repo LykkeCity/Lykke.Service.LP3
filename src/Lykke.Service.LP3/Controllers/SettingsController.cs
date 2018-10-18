@@ -78,7 +78,7 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         public async Task DeleteOrderBookTraderAsync([FromRoute] string assetPairId)
         {
-            await _orderBookTraderService.DeleteOrderBookAsync(assetPairId);
+            await _lp3Service.DeleteOrderBookAsync(assetPairId);
         }
     }
 }

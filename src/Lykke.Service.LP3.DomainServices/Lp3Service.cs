@@ -140,6 +140,23 @@ namespace Lykke.Service.LP3.DomainServices
                 });
         }
 
+        public async Task DeleteOrderBookAsync(string assetPairId)
+        {
+            await SynchronizeAsync(async () =>
+            {
+                try
+                {
+                    await _lykkeExchange.ApplyAsync(assetPairId, new List<LimitOrder>());
+                    await _orderBookTraderService.DeleteOrderBookAsync(assetPairId);
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e);
+                    throw;
+                }
+            });
+        }
+
         private async Task SynchronizeAsync(Func<Task> asyncAction)
         {
             bool lockTaken = false;

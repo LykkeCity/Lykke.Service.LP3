@@ -186,9 +186,7 @@ namespace Lykke.Service.LP3.DomainServices
                 
                 try
                 {
-                    var ordersToPlace = trader.IsEnabled
-                            ? orders.Where(x => x.Error == LimitOrderError.None).ToList()
-                            : new List<LimitOrder>();
+                    var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
                     
                     await _lykkeExchange.ApplyAsync(trader.AssetPairId, ordersToPlace);
 

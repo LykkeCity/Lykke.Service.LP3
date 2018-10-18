@@ -11,6 +11,8 @@ namespace Lykke.Service.LP3.Domain.Orders
         EmptyOrderBook = 3,
         
         ExceedsSideSumVolume = 4,
+        
+        OrderBookIsDisabled = 5,
 
         LowBalance = 401,
 

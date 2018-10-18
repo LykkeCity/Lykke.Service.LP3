@@ -76,9 +76,25 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             var additionalOrders = _additionalOrdersGenerator.GetOrders(levelOrders,
                 AdditionalOrdersCount, AdditionalOrdersVolume, AdditionalOrdersDelta);
 
-            return levelOrders.Union(additionalOrders).ToList();
+            var orders = levelOrders.Union(additionalOrders).ToList();
+
+            MarkOrdersIfDisabled(orders);
+
+            return orders;
         }
-        
+
+        private void MarkOrdersIfDisabled(List<LimitOrder> orders)
+        {
+            if (!IsEnabled)
+            {
+                orders.ForEach(x =>
+                {
+                    x.Error = LimitOrderError.OrderBookIsDisabled;
+                    x.ErrorMessage = "Order book is disabled";
+                });
+            }
+        }
+
         private IReadOnlyCollection<LimitOrder> GetLevelOrders()
         {
             var sellOrder = new LimitOrder(Sell, Math.Abs(LevelVolumeSell), TradeType.Sell)

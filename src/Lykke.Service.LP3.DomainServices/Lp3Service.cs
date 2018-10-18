@@ -182,39 +182,38 @@ namespace Lykke.Service.LP3.DomainServices
                     context: $"trader: {trader.ToJson()}," +
                              $"orders: [{string.Join(", ", orders.Select(x => x.ToJson()))}]");
                 
-                if (trader.IsEnabled)
+                bool success = false;
+                
+                try
                 {
-                    bool success = false;
+                    var ordersToPlace = trader.IsEnabled
+                            ? orders.Where(x => x.Error == LimitOrderError.None).ToList()
+                            : new List<LimitOrder>();
                     
-                    try
-                    {
-                        var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
-                        
-                        await _lykkeExchange.ApplyAsync(trader.AssetPairId, ordersToPlace);
+                    await _lykkeExchange.ApplyAsync(trader.AssetPairId, ordersToPlace);
 
-                        if (ordersToPlace.All(x => x.Error == LimitOrderError.None))
-                        {
-                            _retryNeededForTraders.Remove(trader.AssetPairId);
-                            success = true;    
-                        }
-                    }
-                    catch (Exception e)
+                    if (ordersToPlace.All(x => x.Error == LimitOrderError.None))
                     {
-                        _log.Error(e, $"Error on placing orders for {trader.AssetPairId}");
+                        _retryNeededForTraders.Remove(trader.AssetPairId);
+                        success = true;    
                     }
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e, $"Error on placing orders for {trader.AssetPairId}");
+                }
 
-                    if (!success)
+                if (!success)
+                {
+                    if (!_retryNeededForTraders.Contains(trader.AssetPairId))
                     {
-                        if (!_retryNeededForTraders.Contains(trader.AssetPairId))
-                        {
-                            _retryNeededForTraders.Add(trader.AssetPairId);
-                        }
+                        _retryNeededForTraders.Add(trader.AssetPairId);
                     }
+                }
 
-                    if (_retryNeededForTraders.Any())
-                    {
-                        _retryTimer.Change(Consts.RetryPlacingOrdersPeriod, Timeout.InfiniteTimeSpan);
-                    }
+                if (_retryNeededForTraders.Any())
+                {
+                    _retryTimer.Change(Consts.RetryPlacingOrdersPeriod, Timeout.InfiniteTimeSpan);
                 }
             }
             catch (Exception e)

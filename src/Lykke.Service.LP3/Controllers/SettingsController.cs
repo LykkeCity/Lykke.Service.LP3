@@ -67,6 +67,8 @@ namespace Lykke.Service.LP3.Controllers
             {
                 throw new ValidationApiException($"DependentAssetPairSettings for asset pair {model.AssetPairId} doesn't exists.");
             }
+         
+            // TODO: make update via Lp3Service, it will replace orders after update
             
             await _orderBookTraderService.UpdateOrderBookTraderSettingsAsync(Mapper.Map<OrderBookTraderSettings>(model));
         }

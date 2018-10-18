@@ -22,6 +22,8 @@ namespace Lykke.Service.LP3.Client.Models
         
         public decimal OppositeInventory { get; set; }
         
+        public decimal LevelVolumeSell { get; set; }
         
+        public decimal LevelVolumeBuy { get; set; }
     }
 }

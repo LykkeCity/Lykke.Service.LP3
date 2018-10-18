@@ -34,11 +34,6 @@ namespace Lykke.Service.LP3.Domain.Orders
             TradeType = tradeType;
         }
 
-        public override string ToString()
-        {
-            return this.ToJson();
-        }
-
         public void Round(AssetPairInfo assetPairInfo)
         {
             RoundVolume(assetPairInfo);

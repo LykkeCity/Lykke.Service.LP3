@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
 using LimitOrder = Lykke.Service.LP3.Domain.Orders.LimitOrder;
@@ -43,6 +44,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             AdditionalOrdersCount = settings.AdditionalOrdersCount;
         }
         
+        [UsedImplicitly] // used by Mapper
         public OrderBookTrader(string assetPairId, bool isEnabled, decimal referencePrice, 
             decimal levelDelta, decimal levelOriginalVolume, decimal levelVolumeBuy, decimal levelVolumeSell, 
             decimal additionalOrdersDelta, decimal additionalOrdersVolume, int additionalOrdersCount, 

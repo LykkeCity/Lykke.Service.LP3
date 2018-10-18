@@ -5,7 +5,5 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Lykke.Common" Version="7.0.4" />
-    <PackageReference Include="Lykke.MatchingEngine.ExchangeModels" Version="1.0.3" />
-    <PackageReference Include="Lykke.Service.Assets.Client" Version="5.0.3" />
   </ItemGroup>
 </Project>

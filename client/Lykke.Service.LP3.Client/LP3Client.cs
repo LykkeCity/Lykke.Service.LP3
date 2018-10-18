@@ -10,17 +10,10 @@ namespace Lykke.Service.LP3.Client
         /// <summary>API for get and change settings</summary>
         public ISettingsApi SettingsApi { get; }
         
-        /// <summary>API for set and remove initial price for the algorithm</summary>
-        public IInitialPriceApi InitialPriceApi { get; }
-
         public IOrdersApi OrdersApi { get; }
-        
-        public ILevelsApi LevelsApi { get; }
         
         public ITradesApi TradesApi { get; }
         
-        public ICrossTickPricesApi CrossTickPricesApi { get; }
-
         /// <summary>API for getting balances</summary>
         public IBalancesApi BalancesApi { get; }
 
@@ -28,11 +21,8 @@ namespace Lykke.Service.LP3.Client
         public LP3Client(IHttpClientGenerator httpClientGenerator)
         {
             SettingsApi = httpClientGenerator.Generate<ISettingsApi>();
-            InitialPriceApi = httpClientGenerator.Generate<IInitialPriceApi>();
             OrdersApi = httpClientGenerator.Generate<IOrdersApi>();
-            LevelsApi = httpClientGenerator.Generate<ILevelsApi>();
             TradesApi = httpClientGenerator.Generate<ITradesApi>();
-            CrossTickPricesApi = httpClientGenerator.Generate<ICrossTickPricesApi>();
             BalancesApi = httpClientGenerator.Generate<IBalancesApi>();
         }
     }

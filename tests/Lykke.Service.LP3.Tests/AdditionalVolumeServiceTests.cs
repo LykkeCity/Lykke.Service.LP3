@@ -3,10 +3,7 @@ using System.Threading.Tasks;
 using Lykke.Logs;
 using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
-using Lykke.Service.LP3.Domain.Services;
-using Lykke.Service.LP3.Domain.Settings;
-using Lykke.Service.LP3.DomainServices;
-using Moq;
+using Lykke.Service.LP3.Domain.TradingAlgorithm;
 using Xunit;
 
 namespace Lykke.Service.LP3.Tests
@@ -20,25 +17,13 @@ namespace Lykke.Service.LP3.Tests
             PriceAccuracy = 2,
             VolumeAccuracy = 2
         };
-        
-        private AdditionalVolumeSettings Settings => new AdditionalVolumeSettings
-        {
-            Count = 3,
-            Delta = 0.01m,
-            Volume = 10
-        }; 
 
-        private ISettingsService CreateSettingsService()
-        {
-            var settingsServiceMock = new Mock<ISettingsService>();
-            settingsServiceMock.Setup(x => x.GetAdditionalVolumeSettingsAsync())
-                .ReturnsAsync(Settings);
-
-            return settingsServiceMock.Object;
-        }
+        private const int Count = 3;
+        private const decimal Delta = 0.01m;
+        private const decimal Volume = 10;
         
         [Fact]
-        public async Task FullOrderBook_UseWorstAskAndBid()
+        public void FullOrderBook_UseWorstAskAndBid()
         {
             var currentOrders = new[]
             {
@@ -48,14 +33,14 @@ namespace Lykke.Service.LP3.Tests
                 new LimitOrder(104, 10, TradeType.Sell)
             };
             
-            var service = new AdditionalVolumeService(EmptyLogFactory.Instance, CreateSettingsService());
+            var service = new AdditionalOrdersGenerator();
 
-            var orders = (await service.GetOrdersAsync(currentOrders, AssetPairInfo)).ToList();
+            var orders = service.GetOrders(currentOrders, Count, Volume, Delta).ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             
-            Assert.Equal(Settings.Count * 2, orders.Count);
-            Assert.True(orders.All(x => x.Volume == Settings.Volume));
+            Assert.Equal(Count * 2, orders.Count);
+            Assert.True(orders.All(x => x.Volume == Volume));
             
             Assert.Equal(105m, sellOrders[0].Price, precision: 0);
             Assert.Equal(106m, sellOrders[1].Price, precision: 0);
@@ -75,14 +60,14 @@ namespace Lykke.Service.LP3.Tests
                 new LimitOrder(104, 10, TradeType.Sell)
             };
             
-            var service = new AdditionalVolumeService(EmptyLogFactory.Instance, CreateSettingsService());
+            var service = new AdditionalOrdersGenerator();
 
-            var orders = (await service.GetOrdersAsync(currentOrders, AssetPairInfo)).ToList();
+            var orders = service.GetOrders(currentOrders, Count, Volume, Delta).ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             
-            Assert.Equal(Settings.Count * 2, orders.Count);
-            Assert.True(orders.All(x => x.Volume == Settings.Volume));
+            Assert.Equal(Count * 2, orders.Count);
+            Assert.True(orders.All(x => x.Volume == Volume));
             
             Assert.Equal(105m, sellOrders[0].Price, precision: 0);
             Assert.Equal(106m, sellOrders[1].Price, precision: 0);
@@ -102,14 +87,14 @@ namespace Lykke.Service.LP3.Tests
                 new LimitOrder(102, 10, TradeType.Buy),
             };
             
-            var service = new AdditionalVolumeService(EmptyLogFactory.Instance, CreateSettingsService());
+            var service = new AdditionalOrdersGenerator();
 
-            var orders = (await service.GetOrdersAsync(currentOrders, AssetPairInfo)).ToList();
+            var orders = service.GetOrders(currentOrders, Count, Volume, Delta).ToList();
             var sellOrders = orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var buyOrders = orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToList();
             
-            Assert.Equal(Settings.Count * 2, orders.Count);
-            Assert.True(orders.All(x => x.Volume == Settings.Volume));
+            Assert.Equal(Count * 2, orders.Count);
+            Assert.True(orders.All(x => x.Volume == Volume));
             
             Assert.Equal(103m, sellOrders[0].Price, precision: 0);
             Assert.Equal(104m, sellOrders[1].Price, precision: 0);

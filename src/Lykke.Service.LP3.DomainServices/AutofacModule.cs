@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Autofac;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Services;
@@ -14,18 +13,15 @@ namespace Lykke.Service.LP3.DomainServices
     public class AutofacModule : Module
     {
         private readonly string _walletId;
-        private readonly IEnumerable<string> _availableExternalExchanges;
         private readonly IReadOnlyCollection<AssetMapping> _assetMappings;
         private readonly TimerSettings _timerSettings;
 
         public AutofacModule(
             string walletId, 
-            IEnumerable<string> availableExternalExchanges,
             IReadOnlyCollection<AssetMapping> assetMappings,
             TimerSettings timerSettings)
         {
             _walletId = walletId;
-            _availableExternalExchanges = availableExternalExchanges;
             _assetMappings = assetMappings;
             _timerSettings = timerSettings;
         }
@@ -35,7 +31,6 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<SettingsService>()
                 .As<ISettingsService>()
                 .WithParameter(new NamedParameter("walletId", _walletId))
-                .WithParameter(TypedParameter.From(_availableExternalExchanges))
                 .SingleInstance();
 
             builder.RegisterType<LykkeExchange>()
@@ -48,34 +43,16 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<ILykkeTradeService>()
                 .SingleInstance();
 
-            builder.RegisterType<LevelsService>()
-                .As<ILevelsService>()
-                .As<IStartable>()
-                .SingleInstance()
-                .AutoActivate();
-
             builder.RegisterType<Lp3Service>()
                 .As<ILp3Service>()
                 .As<IStartable>()
                 .SingleInstance()
                 .AutoActivate();
 
-            builder.RegisterType<AdditionalVolumeService>()
-                .As<IAdditionalVolumeService>()
-                .SingleInstance();
-
-            builder.RegisterType<OrdersConverter>()
-                .As<IOrdersConverter>()
-                .SingleInstance();
-
-            builder.RegisterType<TradesConverter>()
-                .As<ITradesConverter>()
+            builder.RegisterType<OrderBookTraderService>()
+                .As<IOrderBookTraderService>()
                 .SingleInstance();
             
-            builder.RegisterType<CrossRateService>()
-                .As<ICrossRateService>()
-                .SingleInstance();
-
             builder.RegisterType<LykkeAssetsService>()
                 .As<IAssetsService>()
                 .SingleInstance();

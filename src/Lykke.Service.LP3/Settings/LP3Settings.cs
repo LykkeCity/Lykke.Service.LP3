@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using JetBrains.Annotations;
 using Lykke.Service.LP3.Domain.Settings;
-using Lykke.SettingsReader.Attributes;
 
 namespace Lykke.Service.LP3.Settings
 {
@@ -15,11 +13,6 @@ namespace Lykke.Service.LP3.Settings
         
         public RabbitSettingsGroup Rabbit { get; set; }
         
-        public ExternalExchangeSettings[] ExternalExchanges { get; set; }
-
-        [Optional] 
-        public TimeSpan OrdersCreationPeriod { get; set; } = TimeSpan.FromSeconds(30);
-
         public IReadOnlyCollection<AssetMapping> AssetMappings { get; set; }
 
         public TimerSettings Timers { get; set; }

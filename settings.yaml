@@ -30,16 +30,6 @@ LP3Service:
           - RabbitMq
         ExchangeName:
           settings-key: LP3-Rabbit-Subscribers-LykkeOrderBooks-Exchange
-          
-  ExternalExchanges:
-    settings-key: LP3-ExternalExchanges
-    types:
-      - JsonArray
-      
-  OrdersCreationPeriod:
-    settings-key: LP3-OrdersCreationPeriod
-    types:
-      - Optional
 
   Timers:
     BalanceTimer:

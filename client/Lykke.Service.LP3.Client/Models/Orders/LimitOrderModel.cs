@@ -21,9 +21,5 @@ namespace Lykke.Service.LP3.Client.Models.Orders
         public string ErrorMessage { get; set; }
         
         public string AssetPairId { get; set; }
-        
-        public string MultiOrderItemId { get; set; }
-        
-        public string LevelName { get; set; }
     }
 }

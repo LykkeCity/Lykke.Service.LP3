@@ -20,16 +20,12 @@ namespace Lykke.Service.LP3.Domain.Orders
         
         public string AssetPairId { get; set; }
         
-        public string LevelName { get; set; }
-        
-        public string MultiOrderItemId { get; set; }
-
         public LimitOrder(decimal price, decimal volume, TradeType tradeType)
             : this(Guid.NewGuid(), price, volume, tradeType)
         {
         }
         
-        public LimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType)
+        internal LimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType)
         {
             Id = id;
             
@@ -45,10 +41,7 @@ namespace Lykke.Service.LP3.Domain.Orders
 
         public void Round(AssetPairInfo assetPairInfo)
         {
-            AssetPairId = assetPairInfo.AssetPairId;
-
             RoundVolume(assetPairInfo);
-
             RoundPrice(assetPairInfo);
         }
 

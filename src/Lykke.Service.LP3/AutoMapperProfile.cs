@@ -1,15 +1,13 @@
 ﻿using AutoMapper;
 using Lykke.Service.LP3.Client.Models;
 using Lykke.Service.LP3.Client.Models.Balances;
-using Lykke.Service.LP3.Client.Models.Levels;
 using Lykke.Service.LP3.Client.Models.Orders;
 using Lykke.Service.LP3.Client.Models.Settings;
 using Lykke.Service.LP3.Client.Models.Trades;
 using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
-using ExternalTickPrice = Lykke.Common.ExchangeAdapter.Contracts.TickPrice;
-using DomainTickPrice = Lykke.Service.LP3.Domain.TickPrice;
+using Lykke.Service.LP3.Domain.TradingAlgorithm;
 
 namespace Lykke.Service.LP3
 {
@@ -17,28 +15,14 @@ namespace Lykke.Service.LP3
     {
         public AutoMapperProfile()
         {
-            CreateMap<Level, LevelSettingsModel>(MemberList.Destination)
-                .ForMember(x => x.Volume, m => m.MapFrom(x => x.OriginalVolume));
+            CreateMap<OrderBookTrader, OrderBookTraderSettingsModel>(MemberList.Destination);
+            CreateMap<OrderBookTraderSettingsModel, OrderBookTraderSettings>(MemberList.Source);
             
-            CreateMap<LevelSettingsModel, Level>(MemberList.None)
-                .ConstructUsing(x => new Level(x.Name, x.Delta, x.Volume));
-            
-            CreateMap<Level, LevelModel>(MemberList.Source);
-            
-            CreateMap<InitialPrice, InitialPriceModel>(MemberList.Source);
-            CreateMap<InitialPriceModel, InitialPrice>(MemberList.Destination);
+            CreateMap<OrderBookTrader, OrderBookTraderModel>(MemberList.Source);
             
             CreateMap<LimitOrder, LimitOrderModel>(MemberList.Source);
-            CreateMap<DependentLimitOrder, DependentLimitOrderModel>(MemberList.Source);
             
             CreateMap<Trade, TradeModel>(MemberList.Source);
-
-            CreateMap<ExternalTickPrice, DomainTickPrice>(MemberList.Destination)
-                .ForMember(x => x.DateTime, m => m.MapFrom(x => x.Timestamp))
-                .ForMember(x => x.AssetPair, m => m.MapFrom(x => x.Asset));
-
-            CreateMap<BaseAssetPairSettingsModel, AssetPairSettings>(MemberList.Source);
-            CreateMap<AssetPairSettings, BaseAssetPairSettingsModel>(MemberList.Destination);
 
             CreateMap<Balance, AssetBalanceModel>(MemberList.Destination);
         }

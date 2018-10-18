@@ -17,51 +17,19 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
 
         protected override void Load(ContainerBuilder builder)
         {
-            const string settingsTableName = "Settings";
+            const string orderBookTradersTableName = "OrderBookTraders";
             const string tradesTableName = "Trades";
-            const string lastTickPricesTableName = "LastTickPrices";
-            const string orderIdsMappingTableName = "OrderIdsMapping";
-            
-            builder.Register(container => new LevelRepository(
-                    AzureTableStorage<LevelEntity>.Create(_connectionString,
-                        settingsTableName, container.Resolve<ILogFactory>())))
-                .As<ILevelRepository>()
-                .SingleInstance();
-            
-            builder.Register(container => new InitialPriceRepository(
-                    AzureTableStorage<InitialPriceEntity>.Create(_connectionString,
-                        settingsTableName, container.Resolve<ILogFactory>())))
-                .As<IInitialPriceRepository>()
-                .SingleInstance();
-            
-            builder.Register(container => new AssetPairSettingsRepository(
-                    AzureTableStorage<AssetPairSettingsEntity>.Create(_connectionString,
-                        settingsTableName, container.Resolve<ILogFactory>())))
-                .As<IAssetPairSettingsRepository>()
-                .SingleInstance();
-            
-            builder.Register(container => new AdditionalVolumeSettingsRepository(
-                    AzureTableStorage<AdditionalVolumeSettingsEntity>.Create(_connectionString,
-                        settingsTableName, container.Resolve<ILogFactory>())))
-                .As<IAdditionalVolumeSettingsRepository>()
-                .SingleInstance();
             
             builder.Register(container => new TradeRepository(
                     AzureTableStorage<TradeEntity>.Create(_connectionString,
                         tradesTableName, container.Resolve<ILogFactory>())))
                 .As<ITradeRepository>()
                 .SingleInstance();
-            
-            builder.Register(container => new LastTickPriceRepository(
-                    AzureTableStorage<LastTickPriceEntity>.Create(_connectionString,
-                        lastTickPricesTableName, container.Resolve<ILogFactory>())))
-                .As<ILastTickPriceRepository>()
-                .SingleInstance();
 
-            builder.Register(container => new OrderIdsMappingRepository(
-                    AzureTableStorage<OrderIdsMappingEntity>.Create(_connectionString,
-                        orderIdsMappingTableName, container.Resolve<ILogFactory>())))
-                .As<IOrderIdsMappingRepository>()
+            builder.Register(container => new OrderBookTraderRepository(
+                    AzureTableStorage<OrderBookEntity>.Create(_connectionString,
+                        orderBookTradersTableName, container.Resolve<ILogFactory>())))
+                .As<IOrderBookTraderRepository>()
                 .SingleInstance();
         }
     }

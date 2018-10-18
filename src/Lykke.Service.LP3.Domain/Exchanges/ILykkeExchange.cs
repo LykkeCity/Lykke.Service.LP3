@@ -6,7 +6,6 @@ namespace Lykke.Service.LP3.Domain.Exchanges
 {
     public interface ILykkeExchange
     {
-        Task ApplyAsync(string assetPairId, IReadOnlyList<LimitOrder> limitOrders);
-        Task ResetIdsMappingAsync();
+        Task ApplyAsync(string assetPairId, IReadOnlyCollection<LimitOrder> limitOrders);
     }
 }

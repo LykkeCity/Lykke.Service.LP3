@@ -12,4 +12,7 @@
     <PackageReference Include="Lykke.Service.Assets.Client" Version="5.0.3" />
     <PackageReference Include="Lykke.Service.Balances.Client" Version="2.1.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TradingAlgorithm" />
+  </ItemGroup>
 </Project>

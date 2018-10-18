@@ -13,6 +13,7 @@ using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
+using Lykke.Service.LP3.Domain.Settings;
 using Lykke.Service.LP3.Domain.TradingAlgorithm;
 
 namespace Lykke.Service.LP3.DomainServices
@@ -26,6 +27,9 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly ILog _log;
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+
+        private readonly Timer _retryTimer;
+        private readonly List<string> _retryNeededForTraders = new List<string>();
 
         private readonly ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>> _ordersByAssetPairs = 
             new ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>>();
@@ -41,12 +45,33 @@ namespace Lykke.Service.LP3.DomainServices
             _assetsService = assetsService;
             _balanceService = balanceService;
             _log = logFactory.CreateLog(this);
+            
+            _retryTimer = new Timer(Retry, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
         
 
         public void Start()
         {
             SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();
+        }
+
+        private void Retry(object state)
+        {
+            SynchronizeAsync(async () =>
+            {
+                if (!_retryNeededForTraders.Any())
+                    return;
+
+                var assetPairId = _retryNeededForTraders.First();
+                
+                _log.Info($"Retrying placing order for {assetPairId}");
+
+                var trader = _orderBookTraderService.GetTraderByAssetPairId(assetPairId);
+                if (trader != null)
+                {
+                    await ApplyOrdersAsync(trader);
+                }
+            }).GetAwaiter().GetResult();
         }
 
         private async Task StartAsync()
@@ -71,8 +96,7 @@ namespace Lykke.Service.LP3.DomainServices
                     }
 
                     var assetPairId = trades.First().AssetPairId;
-                    var trader = (await _orderBookTraderService.GetOrderBookTradersAsync()).SingleOrDefault(x =>
-                        string.Equals(x.AssetPairId, assetPairId, StringComparison.InvariantCultureIgnoreCase));
+                    var trader = _orderBookTraderService.GetTraderByAssetPairId(assetPairId);
 
                     if (trader == null)
                     {
@@ -82,7 +106,7 @@ namespace Lykke.Service.LP3.DomainServices
                     
                     trader.HandleTrades(trades);
 
-                    await _orderBookTraderService.UpdateOrderBookTraderAsync(trader);
+                    await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
                     
                     await ApplyOrdersAsync(trader);
                 }
@@ -96,6 +120,24 @@ namespace Lykke.Service.LP3.DomainServices
         public IReadOnlyCollection<LimitOrder> GetOrders()
         {
             return _ordersByAssetPairs.SelectMany(x => x.Value).ToList();
+        }
+
+        public async Task UpdateOrderBookTraderSettingsAsync(OrderBookTraderSettings orderBookTraderSettings)
+        {
+            await SynchronizeAsync(async () =>
+            {
+                await _orderBookTraderService.UpdateOrderBookTraderSettingsAsync(orderBookTraderSettings);
+                await ApplyOrdersAsync(_orderBookTraderService.GetTraderByAssetPairId(orderBookTraderSettings.AssetPairId));    
+            });
+        }
+
+        public async Task AddOrderBookTraderAsync(OrderBookTraderSettings orderBookTraderSettings)
+        {
+            await SynchronizeAsync(async () =>
+                {
+                    await _orderBookTraderService.AddOrderBookTraderAsync(orderBookTraderSettings);
+                    await ApplyOrdersAsync(_orderBookTraderService.GetTraderByAssetPairId(orderBookTraderSettings.AssetPairId));
+                });
         }
 
         private async Task SynchronizeAsync(Func<Task> asyncAction)
@@ -135,17 +177,43 @@ namespace Lykke.Service.LP3.DomainServices
                 await ValidateBalancesAsync(orders, assetPairInfo);
                 
                 _ordersByAssetPairs[trader.AssetPairId] = orders;
-
+                
+                _log.Info("ApplyingOrders from OrderBookTrader", 
+                    context: $"trader: {trader.ToJson()}," +
+                             $"orders: [{string.Join(", ", orders.Select(x => x.ToJson()))}]");
+                
                 if (trader.IsEnabled)
                 {
+                    bool success = false;
+                    
                     try
                     {
-                        await _lykkeExchange.ApplyAsync(trader.AssetPairId, 
-                            orders.Where(x => x.Error == LimitOrderError.None).ToList());
+                        var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
+                        
+                        await _lykkeExchange.ApplyAsync(trader.AssetPairId, ordersToPlace);
+
+                        if (ordersToPlace.All(x => x.Error == LimitOrderError.None))
+                        {
+                            _retryNeededForTraders.Remove(trader.AssetPairId);
+                            success = true;    
+                        }
                     }
                     catch (Exception e)
                     {
                         _log.Error(e, $"Error on placing orders for {trader.AssetPairId}");
+                    }
+
+                    if (!success)
+                    {
+                        if (!_retryNeededForTraders.Contains(trader.AssetPairId))
+                        {
+                            _retryNeededForTraders.Add(trader.AssetPairId);
+                        }
+                    }
+
+                    if (_retryNeededForTraders.Any())
+                    {
+                        _retryTimer.Change(Consts.RetryPlacingOrdersPeriod, Timeout.InfiniteTimeSpan);
                     }
                 }
             }

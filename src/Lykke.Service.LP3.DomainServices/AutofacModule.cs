@@ -63,7 +63,9 @@ namespace Lykke.Service.LP3.DomainServices
 
             builder.RegisterType<BalanceService>()
                 .As<IBalanceService>()
-                .SingleInstance();
+                .As<IStartable>()
+                .SingleInstance()
+                .AutoActivate();
 
             RegisterTimers(builder);
         }

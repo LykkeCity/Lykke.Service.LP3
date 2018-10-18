@@ -1,6 +1,9 @@
 ﻿using System.Linq;
 using System.Net;
 using Autofac;
+using Lykke.Common.Log;
+using Lykke.MatchingEngine.Connector.Abstractions.Services;
+using Lykke.MatchingEngine.Connector.Services;
 using Lykke.Sdk;
 using Lykke.Service.Assets.Client;
 using Lykke.Service.Balances.Client;
@@ -75,11 +78,6 @@ namespace Lykke.Service.LP3.Modules
                 .As<IStartable>()
                 .SingleInstance()
                 .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrders));
-            
-            builder.RegisterType<LykkeOrderBookSubscriber>()
-                .As<IStartable>()
-                .SingleInstance()
-                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrderBooks));
         }
     }
 }

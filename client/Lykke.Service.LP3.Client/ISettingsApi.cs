@@ -16,7 +16,7 @@ namespace Lykke.Service.LP3.Client
         [Post("/api/settings/orderBookTraders")]
         Task AddOrderBookTraderAsync(OrderBookTraderSettingsModel model);
         
-        [Delete("/api/settings/orderBookTraders")]
+        [Delete("/api/settings/orderBookTraders/{assetPairId}")]
         Task DeleteOrderBookTraderAsync(string assetPairId);
         
         

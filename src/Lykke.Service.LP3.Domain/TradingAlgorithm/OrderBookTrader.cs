@@ -81,8 +81,15 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         
         private IReadOnlyCollection<LimitOrder> GetLevelOrders()
         {
-            var sellOrder = new LimitOrder(Sell, Math.Abs(LevelVolumeSell), TradeType.Sell);
-            var buyOrder = new LimitOrder(Buy, LevelVolumeBuy, TradeType.Buy);
+            var sellOrder = new LimitOrder(Sell, Math.Abs(LevelVolumeSell), TradeType.Sell)
+            {
+                AssetPairId = AssetPairId
+            };
+            
+            var buyOrder = new LimitOrder(Buy, LevelVolumeBuy, TradeType.Buy)
+            {
+                AssetPairId = AssetPairId
+            };
             
             return new[] { sellOrder, buyOrder };
         }
@@ -162,9 +169,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             }
             
             LevelDelta = settings.LevelDelta;
-            LevelOriginalVolume = settings.LevelOriginalVolume;
-            LevelVolumeBuy = settings.LevelOriginalVolume;
-            LevelVolumeSell = -settings.LevelOriginalVolume;
             
             AdditionalOrdersDelta = settings.AdditionalOrdersDelta;
             AdditionalOrdersVolume = settings.AdditionalOrdersVolume;

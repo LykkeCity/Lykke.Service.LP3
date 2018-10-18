@@ -1,7 +1,10 @@
 using Lykke.AzureStorage.Tables;
+using Lykke.AzureStorage.Tables.Entity.Annotation;
+using Lykke.AzureStorage.Tables.Entity.ValueTypesMerging;
 
 namespace Lykke.Service.LP3.AzureRepositories
 {
+    [ValueTypeMergingStrategy(ValueTypeMergingStrategy.UpdateIfDirty)]
     public class OrderBookEntity : AzureTableEntity
     {
         public OrderBookEntity()

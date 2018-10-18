@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Common;
 using Common.Log;
+using JetBrains.Annotations;
 using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
@@ -28,15 +31,20 @@ namespace Lykke.Service.LP3.DomainServices
         {
             if (_orderBookTraders == null)
             {
-                _orderBookTraders =
-                    (await _orderBookTraderRepository.GetAllAsync()).ToDictionary(x => x.AssetPairId, x => x);
+                _orderBookTraders = (await _orderBookTraderRepository.GetAllAsync())
+                    .ToDictionary(x => x.AssetPairId, x => x, StringComparer.InvariantCultureIgnoreCase);
+                
+                _log.Info("OrderBookTraders cache is initialized", 
+                    context: $"traders: [{string.Join(", ", _orderBookTraders.Values.Select(x => x.ToJson()))}]");
             }
 
             return _orderBookTraders.Values;
         }
 
-        public async Task AddOrderBookTraderAsync(OrderBookTraderSettings orderBookSettings)
+        public async Task AddOrderBookTraderAsync([NotNull] OrderBookTraderSettings orderBookSettings)
         {
+            if (orderBookSettings == null) throw new ArgumentNullException(nameof(orderBookSettings));
+            
             var orderBook = new OrderBookTrader(orderBookSettings);
             
             await _orderBookTraderRepository.AddAsync(orderBook);
@@ -44,23 +52,54 @@ namespace Lykke.Service.LP3.DomainServices
             _orderBookTraders.Add(orderBook.AssetPairId, orderBook);
         }
 
-        public Task UpdateOrderBookTraderSettingsAsync(OrderBookTraderSettings orderBookSettings)
+        public async Task UpdateOrderBookTraderSettingsAsync([NotNull] OrderBookTraderSettings orderBookSettings)
         {
+            if (orderBookSettings == null) throw new ArgumentNullException(nameof(orderBookSettings));
+            
+            var trader = GetTraderByAssetPairId(orderBookSettings.AssetPairId);
+
+            string traderStateBefore = trader.ToJson();
+            
+            if (trader == null)
+            {
+                _log.Warning("Unable to update settings of non-existing OrderBookTrader", context: orderBookSettings.AssetPairId);
+                return;
+            }
+            
             _orderBookTraders[orderBookSettings.AssetPairId].UpdateSettings(orderBookSettings);
 
-            return UpdateOrderBookTraderAsync(_orderBookTraders[orderBookSettings.AssetPairId]);
+            await PersistOrderBookTraderAsync(_orderBookTraders[orderBookSettings.AssetPairId]);
+            
+            _log.Info("Updating OrderBookTrader settings",
+                context: $"before: {traderStateBefore}, after: {_orderBookTraders[orderBookSettings.AssetPairId].ToJson()}");
         }
 
         public async Task DeleteOrderBookAsync(string assetPairId)
         {
+            var trader = GetTraderByAssetPairId(assetPairId);
+            if (trader == null)
+            {
+                _log.Warning("Unable to delete non-existing OrderBookTrader", context: assetPairId);
+                return;
+            }
+            
             await _orderBookTraderRepository.DeleteAsync(assetPairId);
 
             _orderBookTraders.Remove(assetPairId);
+            
+            _log.Info("OrderBookTrader was removed", context: $"trader: {trader.ToJson()}");
         }
 
-        public Task UpdateOrderBookTraderAsync(OrderBookTrader orderBookTrader)
+        public Task PersistOrderBookTraderAsync([NotNull] OrderBookTrader orderBookTrader)
         {
+            if (orderBookTrader == null) throw new ArgumentNullException(nameof(orderBookTrader));
+            
             return _orderBookTraderRepository.UpdateAsync(orderBookTrader);
+        }
+
+        public OrderBookTrader GetTraderByAssetPairId(string assetPairId)
+        {
+            return _orderBookTraders[assetPairId];
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Lykke.Service.LP3.Domain.Orders;
+using Lykke.Service.LP3.Domain.Settings;
 
 namespace Lykke.Service.LP3.Domain.Services
 {
@@ -9,5 +10,9 @@ namespace Lykke.Service.LP3.Domain.Services
         Task HandleTradesAsync(IReadOnlyCollection<Trade> trades);
         
         IReadOnlyCollection<LimitOrder> GetOrders();
+        
+        Task UpdateOrderBookTraderSettingsAsync(OrderBookTraderSettings orderBookTraderSettings);
+        
+        Task AddOrderBookTraderAsync(OrderBookTraderSettings orderBookTraderSettings);
     }
 }

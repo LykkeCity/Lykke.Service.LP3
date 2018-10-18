@@ -7,21 +7,23 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 {
     public class AdditionalOrdersGenerator
     {
-        public IEnumerable<LimitOrder> GetOrders(IEnumerable<LimitOrder> currentOrders,
+        public IEnumerable<LimitOrder> GetOrders(IReadOnlyCollection<LimitOrder> currentOrders,
             int count, decimal volume, decimal delta)
         {
-            if (!TryGetBaseBidAsk(currentOrders.ToList(), out var bid, out var ask))
+            if (!TryGetBaseBidAsk(currentOrders, out var bid, out var ask))
             {
                 return Enumerable.Empty<LimitOrder>();
             }
+
+            var assetPairId = currentOrders.First().AssetPairId;
             
-            var asks = GetOrders(ask, count, volume, delta, TradeType.Sell);
-            var bids = GetOrders(bid, count, volume, delta, TradeType.Buy);
+            var asks = GetOrders(ask, count, volume, delta, TradeType.Sell, assetPairId);
+            var bids = GetOrders(bid, count, volume, delta, TradeType.Buy, assetPairId);
 
             return asks.Union(bids);
         }
 
-        private bool TryGetBaseBidAsk(ICollection<LimitOrder> currentOrders, out decimal bid, out decimal ask)
+        private bool TryGetBaseBidAsk(IReadOnlyCollection<LimitOrder> currentOrders, out decimal bid, out decimal ask)
         {
             var asks = currentOrders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToList();
             var bids = currentOrders.Where(x => x.TradeType == TradeType.Buy).OrderBy(x => x.Price).ToList();
@@ -45,7 +47,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         }
 
         private IEnumerable<LimitOrder> GetOrders(decimal worstPrice, int count, decimal volume, decimal delta, 
-            TradeType tradeType)
+            TradeType tradeType, string assetPairId)
         {
             decimal price = worstPrice;
             
@@ -55,7 +57,10 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     ? (decimal) Math.Exp(Math.Log((double) price) + (double) delta)
                     : (decimal) Math.Exp(Math.Log((double) price) - (double) delta);
                 
-                var order = new LimitOrder(price, volume, tradeType);
+                var order = new LimitOrder(price, volume, tradeType)
+                {
+                    AssetPairId = assetPairId
+                };
 
                 yield return order;
             }

@@ -23,14 +23,6 @@ LP3Service:
         ExchangeName:
           settings-key: LP3-Rabbit-Subscribers-LykkeOrders-Exchange
 
-      LykkeOrderBooks:
-        ConnectionString:
-          settings-key: LP3-Rabbit-Subscribers-LykkeOrderBooks-ConnectionString
-          types:
-          - RabbitMq
-        ExchangeName:
-          settings-key: LP3-Rabbit-Subscribers-LykkeOrderBooks-Exchange
-
   Timers:
     BalanceTimer:
       settings-key: LP3-Timers-BalanceTimer

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
 using Common.Log;
 using JetBrains.Annotations;
 using Lykke.Common.Log;
@@ -14,7 +15,7 @@ using Lykke.Service.LP3.Domain.Services;
 namespace Lykke.Service.LP3.DomainServices.Balances
 {
     [UsedImplicitly]
-    public class BalanceService : IBalanceService
+    public class BalanceService : IBalanceService, IStartable
     {
         private readonly ISettingsService _settingsService;
         private readonly IAssetLinkService _assetLinkService;
@@ -80,6 +81,12 @@ namespace Lykke.Service.LP3.DomainServices.Balances
             {
                 _log.Error(exception, "An error occurred while getting balances from Lykke exchange.");
             }
+        }
+
+        public void Start()
+        {
+            _log.Info("Updating balances on start");
+            UpdateBalancesAsync().GetAwaiter().GetResult();
         }
     }
 }

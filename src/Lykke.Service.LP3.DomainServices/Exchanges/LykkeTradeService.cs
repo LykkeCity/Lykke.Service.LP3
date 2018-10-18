@@ -53,11 +53,16 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 if (string.IsNullOrEmpty(walletId))
                     return;
 
-                IEnumerable<LimitOrderWithTrades> clientLimitOrders = limitOrders.Orders
+                List<LimitOrderWithTrades> clientLimitOrders = limitOrders.Orders
                     .Where(o => o.Order?.ClientId == walletId)
-                    .Where(o => o.Trades?.Count > 0);
+                    .Where(o => o.Trades?.Count > 0)
+                    .ToList();
+
+                if (!clientLimitOrders.Any())
+                    return;
                 
-                _log.Info("LimitOrders received", context: $"{limitOrders.ToJson()}");
+                _log.Info("LimitOrders received", context: $"{clientLimitOrders.ToJson()}");
+                
 
                 IReadOnlyList<Trade> trades = ExtractTrades(clientLimitOrders);
 

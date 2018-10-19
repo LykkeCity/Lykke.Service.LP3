@@ -18,7 +18,7 @@ using Lykke.Service.LP3.Domain.TradingAlgorithm;
 
 namespace Lykke.Service.LP3.DomainServices
 {
-    public class Lp3Service : ILp3Service, IStartable
+    public class Lp3Service : ILp3Service, IStartable, IDisposable
     {
         private readonly IOrderBookTraderService _orderBookTraderService;
         private readonly ILykkeExchange _lykkeExchange;
@@ -279,6 +279,12 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 _log.Error(e, "Can't validate balances for buy orders", context: $"assetPairInfo: {assetPairInfo.ToJson()}");
             }
+        }
+
+        public void Dispose()
+        {
+            _semaphore?.Dispose();
+            _retryTimer?.Dispose();
         }
     }
 }

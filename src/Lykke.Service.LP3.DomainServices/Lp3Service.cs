@@ -32,7 +32,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly List<string> _retryNeededForTraders = new List<string>();
 
         private readonly ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>> _ordersByAssetPairs = 
-            new ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>>();
+            new ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>>(StringComparer.InvariantCultureIgnoreCase);
         
         public Lp3Service(ILogFactory logFactory,
             IOrderBookTraderService orderBookTraderService,
@@ -148,6 +148,7 @@ namespace Lykke.Service.LP3.DomainServices
                 {
                     await _lykkeExchange.ApplyAsync(assetPairId, new List<LimitOrder>());
                     await _orderBookTraderService.DeleteOrderBookAsync(assetPairId);
+                    _ordersByAssetPairs.TryRemove(assetPairId, out _);
                 }
                 catch (Exception e)
                 {

@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Common;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.MatchingEngine.Connector.Abstractions.Services;
 using Lykke.MatchingEngine.Connector.Models.Api;
+using Lykke.Service.LP3.Domain;
 using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.DomainServices.Extensions;
@@ -69,7 +71,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
             try
             {
-                response = await _matchingEngineClient.PlaceMultiLimitOrderAsync(multiLimitOrder);
+                response = await _matchingEngineClient.PlaceMultiLimitOrderAsync(multiLimitOrder, 
+                    new CancellationTokenSource(Consts.MatchingEngineTimeout).Token);
             }
             catch (Exception exception)
             {

@@ -7,6 +7,7 @@ using AutoMapper;
 using Lykke.Common.Api.Contract.Responses;
 using Lykke.Common.ApiLibrary.Exceptions;
 using Lykke.Service.LP3.Client;
+using Lykke.Service.LP3.Client.Models;
 using Lykke.Service.LP3.Client.Models.Settings;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
@@ -38,10 +39,10 @@ namespace Lykke.Service.LP3.Controllers
         }
         
         [HttpGet("orderBookTraders")]
-        [ProducesResponseType(typeof(IReadOnlyList<OrderBookTraderSettingsModel>), (int) HttpStatusCode.OK)]
-        public async Task<IReadOnlyList<OrderBookTraderSettingsModel>> GetOrderBookTradersSettingsAsync()
+        [ProducesResponseType(typeof(IReadOnlyList<OrderBookTraderModel>), (int) HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<OrderBookTraderModel>> GetOrderBookTradersSettingsAsync()
         {
-            return Mapper.Map<List<OrderBookTraderSettingsModel>>(await _orderBookTraderService.GetOrderBookTradersAsync());
+            return Mapper.Map<List<OrderBookTraderModel>>(await _orderBookTraderService.GetOrderBookTradersAsync());
         }
         
         [HttpPost("orderBookTraders")]

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Lykke.Service.LP3.Client.Models;
 using Lykke.Service.LP3.Client.Models.Settings;
 using Refit;
 
@@ -8,7 +9,7 @@ namespace Lykke.Service.LP3.Client
     public interface ISettingsApi
     {
         [Get("/api/settings/orderBookTraders")]
-        Task<IReadOnlyList<OrderBookTraderSettingsModel>> GetOrderBookTradersSettingsAsync();
+        Task<IReadOnlyList<OrderBookTraderModel>> GetOrderBookTradersSettingsAsync();
         
         [Put("/api/settings/orderBookTraders")]
         Task UpdateOrderBookTraderSettingsAsync(OrderBookTraderSettingsModel model);

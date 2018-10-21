@@ -17,7 +17,7 @@ LP3Service:
     Subscribers:
       LykkeOrders:
         ConnectionString:
-          settings-key: LP3-Rabbit-Subscribers-LykkeOrders-ConnectionString
+          settings-key: RabbitMEConnString
           types:
           - RabbitMq
         ExchangeName:

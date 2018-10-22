@@ -144,18 +144,18 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await SynchronizeAsync(async () =>
             {
-                try
-                {
-                    await _lykkeExchange.ApplyAsync(assetPairId, new List<LimitOrder>());
-                    await _orderBookTraderService.DeleteOrderBookAsync(assetPairId);
-                    _ordersByAssetPairs.TryRemove(assetPairId, out _);
-                }
-                catch (Exception e)
-                {
-                    _log.Error(e);
-                    throw;
-                }
+                await _lykkeExchange.ApplyAsync(assetPairId, new List<LimitOrder>());
+                await _orderBookTraderService.DeleteOrderBookAsync(assetPairId);
+                _ordersByAssetPairs.TryRemove(assetPairId, out _);
             });
+        }
+
+        public async Task ForceReplaceOrderBookAsync(string assetPairId)
+        {
+            await SynchronizeAsync(async () =>
+                {
+                    await ApplyOrdersAsync(_orderBookTraderService.GetTraderByAssetPairId(assetPairId));
+                });
         }
 
         private async Task SynchronizeAsync(Func<Task> asyncAction)
@@ -171,6 +171,11 @@ namespace Lykke.Service.LP3.DomainServices
                 }
 
                 await asyncAction();
+            }
+            catch(Exception e)
+            {
+                _log.Error(e);
+                throw;
             }
             finally
             {

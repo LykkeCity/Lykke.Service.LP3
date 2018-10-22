@@ -16,5 +16,7 @@ namespace Lykke.Service.LP3.Domain.Services
         Task AddOrderBookTraderAsync(OrderBookTraderSettings orderBookTraderSettings);
         
         Task DeleteOrderBookAsync(string assetPairId);
+        
+        Task ForceReplaceOrderBookAsync(string assetPairId);
     }
 }

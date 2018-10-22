@@ -69,7 +69,7 @@ namespace Lykke.Service.LP3.Controllers
             
             if (!existingSettings.Any(x => string.Equals(x.AssetPairId, model.AssetPairId, StringComparison.InvariantCultureIgnoreCase)))
             {
-                throw new ValidationApiException($"DependentAssetPairSettings for asset pair {model.AssetPairId} doesn't exists.");
+                throw new ValidationApiException($"OrderBookTrader for asset pair {model.AssetPairId} doesn't exists.");
             }
          
             await _lp3Service.UpdateOrderBookTraderSettingsAsync(Mapper.Map<OrderBookTraderSettings>(model));
@@ -80,6 +80,19 @@ namespace Lykke.Service.LP3.Controllers
         public async Task DeleteOrderBookTraderAsync([FromRoute] string assetPairId)
         {
             await _lp3Service.DeleteOrderBookAsync(assetPairId);
+        }
+
+        [HttpPost("orderBookTraders/forceReplace/{assetPairId}")]
+        public async Task ForceReplaceOrderBookAsync([FromRoute] string assetPairId)
+        {
+            var existingSettings = await _orderBookTraderService.GetOrderBookTradersAsync();
+            
+            if (!existingSettings.Any(x => string.Equals(x.AssetPairId, assetPairId, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                throw new ValidationApiException($"OrderBookTrader for asset pair {assetPairId} doesn't exists.");
+            }
+         
+            await _lp3Service.ForceReplaceOrderBookAsync(assetPairId);
         }
     }
 }

@@ -13,5 +13,6 @@ namespace Lykke.Service.LP3.Domain.Repositories
         Task DeleteAsync(string assetPairId, Guid orderId);
         Task ClearAsync(string assetPairId);
         Task AddBatchAsync(IEnumerable<LimitOrder> orders);
+        Task UpdateBatchAsync(IEnumerable<LimitOrder> orders);
     }
 }

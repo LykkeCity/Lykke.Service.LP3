@@ -51,6 +51,10 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<OrderBookTraderService>()
                 .As<IOrderBookTraderService>()
                 .SingleInstance();
+
+            builder.RegisterType<LimitOrderService>()
+                .As<ILimitOrderService>()
+                .SingleInstance();
             
             builder.RegisterType<LykkeAssetsService>()
                 .As<IAssetsService>()

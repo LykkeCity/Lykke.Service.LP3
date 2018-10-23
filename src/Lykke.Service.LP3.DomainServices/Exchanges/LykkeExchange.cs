@@ -108,7 +108,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             }
         }
 
-        public async Task AddSingleOrder(LimitOrder limitOrder)
+        public async Task PlaceLimitOrderAsync(LimitOrder limitOrder)
         {
             var model = new LimitOrderModel
             {
@@ -145,6 +145,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             if (response.Status == MeStatusCodes.Ok)
             {
                 _log.Info("ME place limit order response", new {response = $"data: {response.ToJson()}"});
+
+                limitOrder.Error = LimitOrderError.None;
             }
             else
             {
@@ -152,7 +154,7 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             }
         }
 
-        public async Task CancelSingleOrder(string id)
+        public async Task CancelLimitOrderAsync(string id)
         {
             MeResponseModel response;
             try
@@ -175,7 +177,5 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 _log.Warning("ME cancel limit order response unsuccessful code.", context: new {response = $"data: {response.ToJson()}"});
             }
         }
-        
-        
     }
 }

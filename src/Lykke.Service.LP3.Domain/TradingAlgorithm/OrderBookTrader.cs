@@ -12,7 +12,17 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
     public class OrderBookTrader
     {
         public string AssetPairId { get; }
-        public bool IsEnabled { get; private set; }
+
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set
+            {
+                _isEnabled = value;
+                MarkOrdersIfDisabled(_orders);
+            }
+        }
+
         public decimal Delta { get; private set; }
         public decimal Volume { get; private set; }
         public int Count { get; private set; }
@@ -22,6 +32,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         public decimal OppositeInventory { get; private set; }
 
         private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
+        private bool _isEnabled;
 
         public OrderBookTrader(OrderBookTraderSettings settings)
         {
@@ -93,32 +104,44 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     x.ErrorMessage = "Order book is disabled";
                 });
             }
+            else
+            {
+                orders.ForEach(x =>
+                {
+                    x.Error = LimitOrderError.None;
+                    x.ErrorMessage = null;
+                });
+            }
         }
 
-        public void HandleTrades(IReadOnlyCollection<Trade> trades)
+        public IEnumerable<LimitOrder> HandleTrades(IReadOnlyCollection<Trade> trades)
         {
-            trades.ForEach(HandleTrade);
+            return trades.Select(HandleTrade).SelectMany(x => x);
         }
 
-        private void HandleTrade(Trade trade)
+        private IEnumerable<LimitOrder> HandleTrade(Trade trade)
         {
             if (trade.Type == TradeType.None) throw new ArgumentException("Trade has None type", nameof(trade));
 
-            SpreadVolumeOnOrders(
+            return SpreadVolumeOnOrders(
                 trade.Type == TradeType.Sell
                     ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
                     : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
                 trade.Volume);
         }
         
-        private void SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume)
+        private IEnumerable<LimitOrder> SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume)
         {
             foreach (var limitOrder in orders)
             {
+                LimitOrder newOrder = null;
+                
                 if (limitOrder.Volume <= volume)
                 {
                     _orders.Remove(limitOrder);
-                    _orders.AddLast(CreateOppositeOrder(limitOrder));
+
+                    newOrder = CreateOppositeOrder(limitOrder);
+                    _orders.AddLast(newOrder);
                     
                     volume -= limitOrder.Volume;
 
@@ -153,19 +176,31 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 {
                     break;
                 }
+
+                if (newOrder != null)
+                {
+                    yield return newOrder;
+                }
             }
         }
         
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {
-            return executedOrder.TradeType == TradeType.Sell ? 
-                new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy) : 
-                new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell);
+            return executedOrder.TradeType == TradeType.Sell
+                ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy)
+                    {
+                        Number = executedOrder.Number - 1
+                    }
+                : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell)
+                    {
+                        Number = executedOrder.Number + 1
+                    };
         }
 
         public void UpdateSettings(OrderBookTraderSettings settings)
         {
             IsEnabled = settings.IsEnabled;
+            MarkOrdersIfDisabled(_orders);
 
             if (settings.InitialPrice != 0)
             {
@@ -187,9 +222,28 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             if (limitOrder == null) throw new ArgumentNullException(nameof(limitOrder));
 
             if (!string.Equals(limitOrder.AssetPairId, AssetPairId, StringComparison.InvariantCultureIgnoreCase))
-                throw new ArgumentException($"LimitOrder is for another AssetPair");
+                throw new ArgumentException("LimitOrder is for another AssetPair");
             
             _orders.AddLast(limitOrder);
+        }
+
+        public LimitOrder CancelOrder(Guid orderId)
+        {
+            var order = _orders.SingleOrDefault(x => x.Id == orderId);
+            _orders.Remove(order);
+            return order;
+        }
+
+        public void Clear()
+        {
+            _orders.Clear();
+        }
+
+        public void RestoreOrders(IEnumerable<LimitOrder> limitOrders)
+        {
+            _orders.Clear();
+            
+            limitOrders.ForEach(x => _orders.AddLast(x));
         }
     }
 }

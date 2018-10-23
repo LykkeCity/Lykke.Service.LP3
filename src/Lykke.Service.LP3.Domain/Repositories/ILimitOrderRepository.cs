@@ -10,8 +10,8 @@ namespace Lykke.Service.LP3.Domain.Repositories
         Task AddAsync(LimitOrder order);
         Task<IReadOnlyList<LimitOrder>> GetAllAsync();
         Task UpdateAsync(LimitOrder limitOrder);
-        Task DeleteAsync(Guid orderId);
-        Task ClearAsync();
-        Task AddBatchAsync(LinkedList<LimitOrder> orders);
+        Task DeleteAsync(string assetPairId, Guid orderId);
+        Task ClearAsync(string assetPairId);
+        Task AddBatchAsync(IEnumerable<LimitOrder> orders);
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -24,34 +23,40 @@ namespace Lykke.Service.LP3.Controllers
         
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<LimitOrderModel>), (int) HttpStatusCode.OK)]
-        public Task<IReadOnlyList<LimitOrderModel>> GetOrdersAsync(string assetPairId)
+        public async Task<IReadOnlyList<LimitOrderModel>> GetAllOrdersAsync()
         {
-            var orders = _lp3Service.GetOrders();
-
-            if (!string.IsNullOrEmpty(assetPairId))
-            {
-                orders = orders.Where(x => string.Equals(x.AssetPairId, assetPairId, StringComparison.InvariantCultureIgnoreCase)).ToList();
-            }
+            var orders = await _lp3Service.GetAllOrdersAsync();
 
             var models = Mapper.Map<List<LimitOrderModel>>(orders);
 
-            return Task.FromResult((IReadOnlyList<LimitOrderModel>)models);
+            return models;
+        }
+        
+        [HttpGet("{assetPairId}")]
+        [ProducesResponseType(typeof(IReadOnlyList<LimitOrderModel>), (int) HttpStatusCode.OK)]
+        public async Task<IReadOnlyList<LimitOrderModel>> GetOrdersAsync([FromRoute] string assetPairId)
+        {
+            var orders = await _lp3Service.GetOrdersForAssetAsync(assetPairId);
+
+            var models = Mapper.Map<List<LimitOrderModel>>(orders);
+
+            return models;
         }
 
         [HttpPost]
         [ProducesResponseType((int) HttpStatusCode.OK)]
-        public Task CreateOrderAsync(LimitOrderModel orderModel)
+        public Task CreateOrderAsync([FromBody] LimitOrderModel orderModel)
         {
             var limitOrder = Mapper.Map<LimitOrder>(orderModel);
 
             return _lp3Service.AddOrderAsync(limitOrder);
         }
 
-        [HttpDelete("{orderId}")]
+        [HttpDelete("{assetPairId}/{orderId}")]
         [ProducesResponseType((int) HttpStatusCode.NoContent)]
-        public Task CancelOrderAsync(string orderId)
+        public Task CancelOrderAsync([FromRoute] string assetPairId, [FromRoute] Guid orderId)
         {
-            return _lp3Service.CancelOrderAsync(orderId);
+            return _lp3Service.CancelOrderAsync(assetPairId, orderId);
         }
 
         [HttpDelete("{assetPairId}")]
@@ -61,10 +66,10 @@ namespace Lykke.Service.LP3.Controllers
             return _lp3Service.CancelAllOrdersAsync(assetPairId);
         }
 
-        [HttpPut("{orderId}")]
-        public async Task<LimitOrderModel> RecreateOrderAsync(string orderId)
+        [HttpPost("{assetPairId}/{orderId}/recreate")]
+        public async Task<LimitOrderModel> RecreateOrderAsync([FromRoute] string assetPairId, [FromRoute] Guid orderId)
         {
-            var newOrder = await _lp3Service.RecreateOrderAsync(orderId);
+            var newOrder = await _lp3Service.RecreateOrderAsync(assetPairId, orderId);
 
             return Mapper.Map<LimitOrderModel>(newOrder);
         }

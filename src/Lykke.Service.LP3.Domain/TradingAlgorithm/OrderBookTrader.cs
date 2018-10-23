@@ -82,11 +82,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             {
                 price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
 
-                yield return new LimitOrder(price, Volume, tradeType)
-                    {
-                        AssetPairId = AssetPairId,
-                        Number = i + 1
-                    };
+                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, i + 1);
             }
         }
         
@@ -114,12 +110,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             }
         }
 
-        public IEnumerable<LimitOrder> HandleTrades(IReadOnlyCollection<Trade> trades)
+        public IReadOnlyCollection<LimitOrder> HandleTrades(IReadOnlyCollection<Trade> trades)
         {
-            return trades.Select(HandleTrade).SelectMany(x => x);
+            return trades.Select(HandleTrade).SelectMany(x => x).ToList();
         }
 
-        private IEnumerable<LimitOrder> HandleTrade(Trade trade)
+        private IReadOnlyCollection<LimitOrder> HandleTrade(Trade trade)
         {
             if (trade.Type == TradeType.None) throw new ArgumentException("Trade has None type", nameof(trade));
 
@@ -127,7 +123,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 trade.Type == TradeType.Sell
                     ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
                     : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
-                trade.Volume);
+                trade.Volume).ToList();
         }
         
         private IEnumerable<LimitOrder> SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume)
@@ -160,6 +156,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 {
                     limitOrder.Volume -= volume;
                     
+                    // TODO: check for MinVolume
+                    
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= volume;
@@ -172,14 +170,14 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     }
                 }
                 
-                if (volume == 0)
-                {
-                    break;
-                }
-
                 if (newOrder != null)
                 {
                     yield return newOrder;
+                }
+                
+                if (volume == 0)
+                {
+                    break;
                 }
             }
         }
@@ -187,14 +185,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {
             return executedOrder.TradeType == TradeType.Sell
-                ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy)
-                    {
-                        Number = executedOrder.Number - 1
-                    }
-                : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell)
-                    {
-                        Number = executedOrder.Number + 1
-                    };
+                ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
+                : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
         }
 
         public void UpdateSettings(OrderBookTraderSettings settings)

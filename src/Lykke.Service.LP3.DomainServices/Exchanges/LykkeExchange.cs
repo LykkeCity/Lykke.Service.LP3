@@ -53,6 +53,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 map[multiOrderItem.Id] = limitOrder;
                 
                 multiOrderItems.Add(multiOrderItem);
+
+                limitOrder.ExternalId = multiOrderItem.Id;
             }
 
             var multiLimitOrder = new MultiLimitOrderModel
@@ -151,6 +153,10 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
             else
             {
                 _log.Warning("ME place limit order response unsuccessful code.", context: new {response = $"data: {response.ToJson()}"});
+                limitOrder.Error = response.Status.ToOrderError();
+                limitOrder.ErrorMessage = limitOrder.Error != LimitOrderError.Unknown 
+                    ? response.Message
+                    : !string.IsNullOrEmpty(response.Message) ? response.Message : "Unknown error";
             }
         }
 

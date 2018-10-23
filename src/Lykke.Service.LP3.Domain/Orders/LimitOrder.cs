@@ -8,13 +8,9 @@ namespace Lykke.Service.LP3.Domain.Orders
     {
         public Guid Id { get; }
         
-        
         public string ExternalId { get; set; }
         
         public decimal Number { get; set; }
-        
-        
-        
 
         public decimal Price { get; private set; }
 
@@ -28,18 +24,19 @@ namespace Lykke.Service.LP3.Domain.Orders
         
         public string AssetPairId { get; set; }
         
-        public LimitOrder(decimal price, decimal volume, TradeType tradeType)
-            : this(Guid.NewGuid(), price, volume, tradeType)
+        public LimitOrder(decimal price, decimal volume, TradeType tradeType, string assetPairId, decimal number)
+            : this(Guid.NewGuid(), price, volume, tradeType, assetPairId, number)
         {
         }
         
-        internal LimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType)
+        internal LimitOrder(Guid id, decimal price, decimal volume, TradeType tradeType, string assetPairId, decimal number)
         {
             Id = id;
             
             Price = price;
             Volume = volume;
             TradeType = tradeType;
+            AssetPairId = assetPairId;
         }
         
         public void Round(AssetPairInfo assetPairInfo)

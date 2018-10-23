@@ -8,6 +8,8 @@ namespace Lykke.Service.LP3.Client.Models.Orders
         
         public decimal Volume { get; set; }
         
+        public decimal Number { get; set; }
+        
         public TradeType TradeType { get; set; }
     }
 }

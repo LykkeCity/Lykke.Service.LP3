@@ -45,7 +45,7 @@ namespace Lykke.Service.LP3.Controllers
 
         [HttpPost]
         [ProducesResponseType((int) HttpStatusCode.OK)]
-        public Task CreateOrderAsync([FromBody] LimitOrderModel orderModel)
+        public Task CreateOrderAsync([FromBody] LimitOrderPostModel orderModel)
         {
             var limitOrder = Mapper.Map<LimitOrder>(orderModel);
 

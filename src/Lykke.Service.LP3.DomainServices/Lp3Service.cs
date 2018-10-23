@@ -102,6 +102,8 @@ namespace Lykke.Service.LP3.DomainServices
                     {
                         return;
                     }
+                    
+                    _log.Info("Trades received", context: $"trades: [{string.Join(", ", trades.Select(x => x.ToJson()))}]");
 
                     var assetPairId = trades.First().AssetPairId;
                     var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId);
@@ -260,6 +262,7 @@ namespace Lykke.Service.LP3.DomainServices
                     trader.IsEnabled = false;
                     await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
                     await _limitOrderService.UpdateBatchAsync(trader.GetOrders());
+                    await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
                 });
         }
 
@@ -277,6 +280,7 @@ namespace Lykke.Service.LP3.DomainServices
                 trader.IsEnabled = true;
                 await ApplyOrdersAsync(assetPairId, trader.GetOrders());
                 await _limitOrderService.UpdateBatchAsync(trader.GetOrders());
+                await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
             });
         }
 
@@ -337,11 +341,18 @@ namespace Lykke.Service.LP3.DomainServices
             
             try
             {
+                var assetPairInfo = _assetsService.GetAssetPairInfo(limitOrder.AssetPairId);
+                limitOrder.Round(assetPairInfo);
+
+                await ValidateBalancesAsync(new [] { limitOrder }, assetPairInfo);
+                
                 await _lykkeExchange.PlaceLimitOrderAsync(limitOrder);
             }
             catch (Exception e)
             {
                 _log.Error(e, "Error on placing single order", context: $"order: {limitOrder.ToJson()}");
+                limitOrder.Error = LimitOrderError.Unknown;
+                limitOrder.ErrorMessage = e.Message;
             }
         }
 

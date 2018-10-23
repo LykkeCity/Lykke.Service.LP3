@@ -20,7 +20,7 @@ namespace Lykke.Service.LP3.AzureRepositories
 
         public async Task AddAsync(LimitOrder order)
         {
-            var entity = new LimitOrderEntity(GetPartitionKey(), GetRowKey(order.Id));
+            var entity = new LimitOrderEntity(GetPartitionKey(order.AssetPairId), GetRowKey(order.Id));
 
             Mapper.Map(order, entity);
 
@@ -29,35 +29,43 @@ namespace Lykke.Service.LP3.AzureRepositories
         
         public async Task<IReadOnlyList<LimitOrder>> GetAllAsync()
         {
-            IEnumerable<LimitOrderEntity> data = await _storage.GetDataAsync(GetPartitionKey());
+            IEnumerable<LimitOrderEntity> data = await _storage.GetDataAsync();
+
+            return Mapper.Map<List<LimitOrder>>(data);
+        }
+        
+        public async Task<IReadOnlyList<LimitOrder>> GetAllForAssetPairAsync(string assetPairId)
+        {
+            IEnumerable<LimitOrderEntity> data = await _storage.GetDataAsync(GetPartitionKey(assetPairId));
 
             return Mapper.Map<List<LimitOrder>>(data);
         }
 
         public async Task UpdateAsync(LimitOrder limitOrder)
         {
-            var entity = new LimitOrderEntity(GetPartitionKey(), GetRowKey(limitOrder.Id));
+            var entity = new LimitOrderEntity(GetPartitionKey(limitOrder.AssetPairId), GetRowKey(limitOrder.Id));
 
             Mapper.Map(limitOrder, entity);
 
             await _storage.InsertOrMergeAsync(entity);
         }
 
-        public async Task DeleteAsync(Guid orderId)
+        public async Task DeleteAsync(string assetPairId, Guid orderId)
         {
-            await _storage.DeleteAsync(GetPartitionKey(), GetRowKey(orderId));
+            await _storage.DeleteAsync(GetPartitionKey(assetPairId), GetRowKey(orderId));
         }
 
-        public async Task ClearAsync()
+        public async Task ClearAsync(string assetPairId)
         {
-            await _storage.DeleteAsync();
+            var data = await _storage.GetDataAsync(GetPartitionKey(assetPairId));
+            await _storage.DeleteAsync(data);
         }
 
-        public async Task AddBatchAsync(LinkedList<LimitOrder> orders)
+        public async Task AddBatchAsync(IEnumerable<LimitOrder> orders)
         {
             var models = orders.Select(x =>
             {
-                var entity = new LimitOrderEntity(GetPartitionKey(), GetRowKey(x.Id));
+                var entity = new LimitOrderEntity(GetPartitionKey(x.AssetPairId), GetRowKey(x.Id));
                 Mapper.Map(x, entity);
                 return entity;
             });
@@ -65,7 +73,7 @@ namespace Lykke.Service.LP3.AzureRepositories
             await _storage.InsertOrMergeBatchAsync(models);
         }
 
-        private string GetPartitionKey() => "LimitOrder";
+        private string GetPartitionKey(string assetPairId) => assetPairId.ToUpperInvariant();
 
         private string GetRowKey(Guid orderId) => orderId.ToString("N");
     }

@@ -21,17 +21,13 @@ namespace Lykke.Service.LP3.AzureRepositories
         
         private bool _isEnabled;
 
-        private decimal _additionalOrdersDelta;
-        private decimal _additionalOrdersVolume;
-        private int _additionalOrdersCount;
+        private decimal _volume;
+        private int _count;
+        private decimal _delta;
         
-        private decimal _levelDelta;
-        private decimal _referencePrice;
+        private decimal _initialPrice;
         private decimal _inventory;
         private decimal _oppositeInventory;
-        private decimal _levelVolumeSell;
-        private decimal _levelVolumeBuy;
-        private decimal _levelOriginalVolume;
 
         
         public bool IsEnabled
@@ -43,56 +39,45 @@ namespace Lykke.Service.LP3.AzureRepositories
                 MarkValueTypePropertyAsDirty(nameof(IsEnabled));
             }
         }
-        
 
-        public decimal AdditionalOrdersDelta
+        public decimal Volume
         {
-            get => _additionalOrdersDelta;
+            get => _volume;
             set
             {
-                _additionalOrdersDelta = value;
-                MarkValueTypePropertyAsDirty(nameof(AdditionalOrdersDelta));
+                _volume = value;
+                MarkValueTypePropertyAsDirty(nameof(Volume));
             }
         }
 
-        public decimal AdditionalOrdersVolume
+        public int Count
         {
-            get => _additionalOrdersVolume;
+            get => _count;
             set
             {
-                _additionalOrdersVolume = value;
-                MarkValueTypePropertyAsDirty(nameof(AdditionalOrdersVolume));
-            }
-        }
-
-        public int AdditionalOrdersCount
-        {
-            get => _additionalOrdersCount;
-            set
-            {
-                _additionalOrdersCount = value;
-                MarkValueTypePropertyAsDirty(nameof(AdditionalOrdersCount));
+                _count = value;
+                MarkValueTypePropertyAsDirty(nameof(Count));
             }
         }
 
         
-        public decimal LevelDelta
+        public decimal Delta
         {
-            get => _levelDelta;
+            get => _delta;
             set
             {
-                _levelDelta = value;
-                MarkValueTypePropertyAsDirty(nameof(LevelDelta));
+                _delta = value;
+                MarkValueTypePropertyAsDirty(nameof(Delta));
             }
         }
 
-        public decimal ReferencePrice
+        public decimal InitialPrice
         {
-            get => _referencePrice;
+            get => _initialPrice;
             set
             {
-                _referencePrice = value;
-                MarkValueTypePropertyAsDirty(nameof(ReferencePrice));
+                _initialPrice = value;
+                MarkValueTypePropertyAsDirty(nameof(InitialPrice));
             }
         }
 
@@ -113,36 +98,6 @@ namespace Lykke.Service.LP3.AzureRepositories
             {
                 _oppositeInventory = value;
                 MarkValueTypePropertyAsDirty(nameof(OppositeInventory));
-            }
-        }
-
-        public decimal LevelVolumeSell
-        {
-            get => _levelVolumeSell;
-            set
-            {
-                _levelVolumeSell = value;
-                MarkValueTypePropertyAsDirty(nameof(LevelVolumeSell));
-            }
-        }
-
-        public decimal LevelVolumeBuy
-        {
-            get => _levelVolumeBuy;
-            set
-            {
-                _levelVolumeBuy = value;
-                MarkValueTypePropertyAsDirty(nameof(LevelVolumeBuy));
-            }
-        }
-
-        public decimal LevelOriginalVolume
-        {
-            get => _levelOriginalVolume;
-            set
-            {
-                _levelOriginalVolume = value;
-                MarkValueTypePropertyAsDirty(nameof(LevelOriginalVolume));
             }
         }
     }

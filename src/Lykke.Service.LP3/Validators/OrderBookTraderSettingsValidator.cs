@@ -21,29 +21,21 @@ namespace Lykke.Service.LP3.Validators
                     }
                 });
             
-            RuleFor(x => x.LevelDelta)
+            RuleFor(x => x.Delta)
                 .GreaterThan(0)
-                .WithMessage("LevelDelta must be positive");
+                .WithMessage("Delta must be positive");
 
-            RuleFor(x => x.LevelOriginalVolume)
+            RuleFor(x => x.Volume)
                 .GreaterThan(0)
-                .WithMessage("LevelOriginalVolume must be positive");
+                .WithMessage("Volume must be positive");
             
-            RuleFor(x => x.AdditionalOrdersCount)
+            RuleFor(x => x.Count)
                 .GreaterThanOrEqualTo(0)
-                .WithMessage("AdditionalOrdersCount must be non-negative");
+                .WithMessage("Count must be non-negative");
 
-            RuleFor(x => x.AdditionalOrdersDelta)
-                .GreaterThan(0)
-                .WithMessage("AdditionalOrdersDelta must be positive");
-
-            RuleFor(x => x.AdditionalOrdersVolume)
-                .GreaterThan(0)
-                .WithMessage("AdditionalOrdersVolume must be positive");
-            
-            RuleFor(x => x.ReferencePrice)
+            RuleFor(x => x.InitialPrice)
                 .GreaterThanOrEqualTo(0)
-                .WithMessage("ReferencePrice must be non-negative");
+                .WithMessage("InitialPrice must be non-negative");
         }
     }
 }

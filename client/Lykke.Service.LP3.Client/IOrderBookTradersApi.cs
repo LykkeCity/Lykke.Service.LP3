@@ -28,5 +28,8 @@ namespace Lykke.Service.LP3.Client
 
         [Post("/api/orderBookTraders/{assetPairId}/softStart")]
         Task SoftStartAsync(string assetPairId);
+
+        [Post("/api/orderBookTraders/{assetPairId}/forceReplace")]
+        Task ForceReplaceOrderBookAsync(string assetPairId);
     }
 }

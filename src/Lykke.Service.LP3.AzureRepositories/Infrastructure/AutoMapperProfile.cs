@@ -13,6 +13,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
             
             CreateMap<TradeEntity, Trade>(MemberList.Destination);
             CreateMap<Trade, TradeEntity>(MemberList.Source);
+
+            CreateMap<LimitOrderEntity, LimitOrder>(MemberList.Destination);
+            CreateMap<LimitOrder, LimitOrderEntity>(MemberList.Source);
         }
     }
 }

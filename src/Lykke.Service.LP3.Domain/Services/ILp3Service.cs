@@ -18,5 +18,13 @@ namespace Lykke.Service.LP3.Domain.Services
         Task DeleteOrderBookAsync(string assetPairId);
         
         Task ForceReplaceOrderBookAsync(string assetPairId);
+        
+        Task AddOrderAsync(LimitOrder limitOrder);
+        
+        Task CancelOrderAsync(string orderId);
+        
+        Task CancelAllOrdersAsync(string assetPairId);
+        
+        Task<LimitOrder> RecreateOrderAsync(string orderId);
     }
 }

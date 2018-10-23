@@ -107,5 +107,75 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 }
             }
         }
+
+        public async Task AddSingleOrder(LimitOrder limitOrder)
+        {
+            var model = new LimitOrderModel
+            {
+                AssetPairId = limitOrder.AssetPairId,
+                CancelPreviousOrders = false,
+                ClientId = _walletId,
+                Id = Guid.NewGuid().ToString(),
+                OrderAction = limitOrder.TradeType.ToOrderAction(),
+                Price = (double) limitOrder.Price,
+                Volume = (double) limitOrder.Volume,
+            };
+
+            limitOrder.ExternalId = model.Id;
+
+            MeResponseModel response;
+            try
+            {
+                response = await _matchingEngineClient.PlaceLimitOrderAsync(model, 
+                    new CancellationTokenSource(Consts.MatchingEngineTimeout).Token);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "An error occurred during creating limit orders",
+                    new {request = $"data: {model.ToJson()}"});
+
+                throw;
+            }
+            
+            if (response == null)
+            {
+                throw new Exception("ME response is null");
+            }
+
+            if (response.Status == MeStatusCodes.Ok)
+            {
+                _log.Info("ME place limit order response", new {response = $"data: {response.ToJson()}"});
+            }
+            else
+            {
+                _log.Warning("ME place limit order response unsuccessful code.", context: new {response = $"data: {response.ToJson()}"});
+            }
+        }
+
+        public async Task CancelSingleOrder(string id)
+        {
+            MeResponseModel response;
+            try
+            {
+                response = await _matchingEngineClient.CancelLimitOrderAsync(id, 
+                    new CancellationTokenSource(Consts.MatchingEngineTimeout).Token);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "An error occurred during cancel limit order", new {request = $"id: {id}"});
+                throw;
+            }
+         
+            if (response.Status == MeStatusCodes.Ok)
+            {
+                _log.Info("ME cancel limit order response", new {response = $"data: {response.ToJson()}"});
+            }
+            else
+            {
+                _log.Warning("ME cancel limit order response unsuccessful code.", context: new {response = $"data: {response.ToJson()}"});
+            }
+        }
+        
+        
     }
 }

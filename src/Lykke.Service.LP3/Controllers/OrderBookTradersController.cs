@@ -100,7 +100,7 @@ namespace Lykke.Service.LP3.Controllers
             
             if (!existingSettings.Any(x => string.Equals(x.AssetPairId, model.AssetPairId, StringComparison.InvariantCultureIgnoreCase)))
             {
-                throw new ValidationApiException($"DependentAssetPairSettings for asset pair {model.AssetPairId} doesn't exists.");
+                throw new ValidationApiException($"OrderBookTrader for asset pair {model.AssetPairId} doesn't exists.");
             }
          
             await _lp3Service.UpdateOrderBookTraderSettingsAsync(Mapper.Map<OrderBookTraderSettings>(model));

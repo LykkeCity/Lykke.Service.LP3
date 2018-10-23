@@ -1,8 +1,10 @@
 using FluentValidation;
+using JetBrains.Annotations;
 using Lykke.Service.LP3.Client.Models.Orders;
 
 namespace Lykke.Service.LP3.Validators
 {
+    [UsedImplicitly]
     public class LimitOrderPostModelValidator : AbstractValidator<LimitOrderPostModel>
     {
         public LimitOrderPostModelValidator()

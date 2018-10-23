@@ -15,7 +15,7 @@ namespace Lykke.Service.LP3.Client
         Task<IReadOnlyList<LimitOrderModel>> GetOrdersAsync(string assetPairId);
 
         [Post("/api/orders")]
-        Task CreateOrderAsync(LimitOrderModel orderModel);
+        Task CreateOrderAsync(LimitOrderPostModel orderModel);
 
         [Delete("/api/orders/{assetPairId}/{orderId}")]
         Task CancelOrderAsync(string assetPairId, Guid orderId);

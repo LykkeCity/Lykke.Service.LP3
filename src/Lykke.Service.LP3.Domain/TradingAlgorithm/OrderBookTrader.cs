@@ -110,12 +110,24 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             }
         }
 
-        public IReadOnlyCollection<LimitOrder> HandleTrades(IReadOnlyCollection<Trade> trades)
+        public (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+            HandleTrades(IReadOnlyCollection<Trade> trades, decimal minVolume)
         {
-            return trades.Select(HandleTrade).SelectMany(x => x).ToList();
+            var addedOrders = new List<LimitOrder>();
+            var removedOrders = new List<LimitOrder>();
+            
+            foreach (var trade in trades)
+            {
+                var (addedOrdersFromTrade, removedOrdersFromTrade) = HandleTrade(trade, minVolume);
+                addedOrders.AddRange(addedOrdersFromTrade);
+                removedOrders.AddRange(removedOrdersFromTrade);
+            }
+
+            return (addedOrders, removedOrders);
         }
 
-        private IReadOnlyCollection<LimitOrder> HandleTrade(Trade trade)
+        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+            HandleTrade(Trade trade, decimal minVolume)
         {
             if (trade.Type == TradeType.None) throw new ArgumentException("Trade has None type", nameof(trade));
 
@@ -123,21 +135,25 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 trade.Type == TradeType.Sell
                     ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
                     : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
-                trade.Volume).ToList();
+                trade.Volume, minVolume);
         }
         
-        private IEnumerable<LimitOrder> SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume)
+        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
         {
+            var addedOrders = new List<LimitOrder>();
+            var removedOrders = new List<LimitOrder>();
+            
             foreach (var limitOrder in orders)
             {
-                LimitOrder newOrder = null;
-                
-                if (limitOrder.Volume <= volume)
+                if (limitOrder.Volume <= volume || limitOrder.Volume - volume < minVolume)
                 {
                     _orders.Remove(limitOrder);
-
-                    newOrder = CreateOppositeOrder(limitOrder);
+                    removedOrders.Add(limitOrder);
+                    
+                    var newOrder = CreateOppositeOrder(limitOrder);
                     _orders.AddLast(newOrder);
+                    addedOrders.Add(newOrder);
                     
                     volume -= limitOrder.Volume;
 
@@ -156,8 +172,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 {
                     limitOrder.Volume -= volume;
                     
-                    // TODO: check for MinVolume
-                    
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= volume;
@@ -170,16 +184,13 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     }
                 }
                 
-                if (newOrder != null)
-                {
-                    yield return newOrder;
-                }
-                
                 if (volume == 0)
                 {
                     break;
                 }
             }
+
+            return (addedOrders, removedOrders);
         }
         
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)

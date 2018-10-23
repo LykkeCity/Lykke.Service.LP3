@@ -6,6 +6,7 @@ using AutoMapper;
 using AzureStorage;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace Lykke.Service.LP3.AzureRepositories
 {

@@ -37,6 +37,7 @@ namespace Lykke.Service.LP3.Domain.Orders
             Volume = volume;
             TradeType = tradeType;
             AssetPairId = assetPairId;
+            Number = number;
         }
         
         public void Round(AssetPairInfo assetPairInfo)

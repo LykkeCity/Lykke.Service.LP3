@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Lykke.Service.LP3.Client;
 using Lykke.Service.LP3.Client.Models.Orders;
+using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,6 +36,37 @@ namespace Lykke.Service.LP3.Controllers
             var models = Mapper.Map<List<LimitOrderModel>>(orders);
 
             return Task.FromResult((IReadOnlyList<LimitOrderModel>)models);
+        }
+
+        [HttpPost]
+        [ProducesResponseType((int) HttpStatusCode.OK)]
+        public Task CreateOrderAsync(LimitOrderModel orderModel)
+        {
+            var limitOrder = Mapper.Map<LimitOrder>(orderModel);
+
+            return _lp3Service.AddOrderAsync(limitOrder);
+        }
+
+        [HttpDelete("{orderId}")]
+        [ProducesResponseType((int) HttpStatusCode.NoContent)]
+        public Task CancelOrderAsync(string orderId)
+        {
+            return _lp3Service.CancelOrderAsync(orderId);
+        }
+
+        [HttpDelete("{assetPairId}")]
+        [ProducesResponseType((int) HttpStatusCode.NoContent)]
+        public Task CancelAllOrdersAsync(string assetPairId)
+        {
+            return _lp3Service.CancelAllOrdersAsync(assetPairId);
+        }
+
+        [HttpPut("{orderId}")]
+        public async Task<LimitOrderModel> RecreateOrderAsync(string orderId)
+        {
+            var newOrder = await _lp3Service.RecreateOrderAsync(orderId);
+
+            return Mapper.Map<LimitOrderModel>(newOrder);
         }
     }
 }

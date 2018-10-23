@@ -9,5 +9,11 @@ namespace Lykke.Service.LP3.Client
     {
         [Get("/api/orders")]
         Task<IReadOnlyList<LimitOrderModel>> GetOrdersAsync(string assetPairId);
+
+        [Post("/api/orders")]
+        Task CreateOrderAsync(LimitOrderModel orderModel);
+
+        [Delete("/api/orders/{orderId}")]
+        Task CancelOrderAsync(string orderId);
     }
 }

@@ -7,10 +7,18 @@ namespace Lykke.Service.LP3.Domain.Orders
     public class LimitOrder
     {
         public Guid Id { get; }
+        
+        
+        public string ExternalId { get; set; }
+        
+        public decimal Number { get; set; }
+        
+        
+        
 
         public decimal Price { get; private set; }
 
-        public decimal Volume { get; private set; }
+        public decimal Volume { get; set; }
         
         public TradeType TradeType { get; }
         
@@ -33,7 +41,7 @@ namespace Lykke.Service.LP3.Domain.Orders
             Volume = volume;
             TradeType = tradeType;
         }
-
+        
         public void Round(AssetPairInfo assetPairInfo)
         {
             RoundVolume(assetPairInfo);

@@ -16,6 +16,8 @@ namespace Lykke.Service.LP3.Client
         
         /// <summary>API for getting balances</summary>
         public IBalancesApi BalancesApi { get; }
+        
+        public IOrderBookTradersApi OrderBookTradersApi { get; }
 
         /// <summary>C-tor</summary>
         public LP3Client(IHttpClientGenerator httpClientGenerator)
@@ -24,6 +26,7 @@ namespace Lykke.Service.LP3.Client
             OrdersApi = httpClientGenerator.Generate<IOrdersApi>();
             TradesApi = httpClientGenerator.Generate<ITradesApi>();
             BalancesApi = httpClientGenerator.Generate<IBalancesApi>();
+            OrderBookTradersApi = httpClientGenerator.Generate<IOrderBookTradersApi>();
         }
     }
 }

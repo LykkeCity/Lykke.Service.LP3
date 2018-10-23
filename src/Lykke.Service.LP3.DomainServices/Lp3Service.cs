@@ -158,6 +158,26 @@ namespace Lykke.Service.LP3.DomainServices
             });
         }
 
+        public Task AddOrderAsync(LimitOrder limitOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CancelOrderAsync(string orderId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CancelAllOrdersAsync(string assetPairId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<LimitOrder> RecreateOrderAsync(string orderId)
+        {
+            throw new NotImplementedException();
+        }
+
         private async Task SynchronizeAsync(Func<Task> asyncAction)
         {
             bool lockTaken = false;

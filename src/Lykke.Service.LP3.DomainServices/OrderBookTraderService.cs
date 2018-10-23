@@ -101,5 +101,20 @@ namespace Lykke.Service.LP3.DomainServices
         {
             return _orderBookTraders[assetPairId];
         }
+
+        public Task SoftStopAsync(string assetPairId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SoftStartAsync(string assetPairId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<OrderBookTrader> GetOrderBookTraderAsync(string assetPairId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

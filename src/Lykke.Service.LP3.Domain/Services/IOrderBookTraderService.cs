@@ -18,5 +18,11 @@ namespace Lykke.Service.LP3.Domain.Services
         Task PersistOrderBookTraderAsync(OrderBookTrader orderBookTrader);
 
         OrderBookTrader GetTraderByAssetPairId(string assetPairId);
+        
+        Task SoftStopAsync(string assetPairId);
+        
+        Task SoftStartAsync(string assetPairId);
+        
+        Task<OrderBookTrader> GetOrderBookTraderAsync(string assetPairId);
     }
 }

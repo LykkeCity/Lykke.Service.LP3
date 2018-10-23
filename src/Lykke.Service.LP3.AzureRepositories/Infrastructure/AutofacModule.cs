@@ -19,6 +19,7 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
         {
             const string orderBookTradersTableName = "OrderBookTraders";
             const string tradesTableName = "Trades";
+            const string limitOrdersTableName = "LimitOrders";
             
             builder.Register(container => new TradeRepository(
                     AzureTableStorage<TradeEntity>.Create(_connectionString,
@@ -30,6 +31,12 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
                     AzureTableStorage<OrderBookEntity>.Create(_connectionString,
                         orderBookTradersTableName, container.Resolve<ILogFactory>())))
                 .As<IOrderBookTraderRepository>()
+                .SingleInstance();
+
+            builder.Register(container => new LimitOrderRepository(
+                    AzureTableStorage<LimitOrderEntity>.Create(_connectionString,
+                        limitOrdersTableName, container.Resolve<ILogFactory>())))
+                .As<ILimitOrderRepository>()
                 .SingleInstance();
         }
     }

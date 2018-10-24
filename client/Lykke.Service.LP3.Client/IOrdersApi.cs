@@ -22,5 +22,8 @@ namespace Lykke.Service.LP3.Client
 
         [Post("/api/orders/{assetPairId}/{orderId}/recreate")]
         Task<LimitOrderModel> RecreateOrderAsync(string assetPairId, Guid orderId);
+
+        [Delete("/api/orders/{assetPairId}")]
+        Task CancelAllOrdersAsync(string assetPairId);
     }
 }

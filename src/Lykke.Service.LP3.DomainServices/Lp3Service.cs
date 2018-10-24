@@ -83,12 +83,6 @@ namespace Lykke.Service.LP3.DomainServices
                 var ordersForTrader = orders.Where(x => x.AssetPairId == trader.AssetPairId).ToList();
                 trader.RestoreOrders(ordersForTrader);
                 _log.Info($"There were {ordersForTrader.Count} orders restored for trader {trader.AssetPairId}");
-                
-                if (trader.IsEnabled && orders.All(x => x.AssetPairId != trader.AssetPairId))
-                {
-                    await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders());
-                    await _limitOrderService.AddBatchAsync(trader.GetOrders());
-                }
             }
         }
         
@@ -153,6 +147,7 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 await _orderBookTraderService.UpdateOrderBookTraderSettingsAsync(orderBookTraderSettings);
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
+                await _limitOrderService.ClearAsync(trader.AssetPairId);
                 await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders());    
             });
         }
@@ -268,7 +263,7 @@ namespace Lykke.Service.LP3.DomainServices
 
                     trader.IsEnabled = false;
                     await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
-                    await _limitOrderService.UpdateBatchAsync(trader.GetOrders());
+                    await _limitOrderService.AddOrUpdateBatchAsync(trader.GetOrders());
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
                 });
         }
@@ -286,7 +281,6 @@ namespace Lykke.Service.LP3.DomainServices
 
                 trader.IsEnabled = true;
                 await ApplyOrdersAsync(assetPairId, trader.GetOrders());
-                await _limitOrderService.UpdateBatchAsync(trader.GetOrders());
                 await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
             });
         }
@@ -400,7 +394,7 @@ namespace Lykke.Service.LP3.DomainServices
                     var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
                     
                     await _lykkeExchange.ApplyAsync(assetPairId, ordersToPlace);
-                    await _limitOrderService.AddBatchAsync(orders);
+                    await _limitOrderService.AddOrUpdateBatchAsync(orders);
                     
 
                     if (ordersToPlace.All(x => x.Error == LimitOrderError.None))

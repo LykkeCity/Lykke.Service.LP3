@@ -6,7 +6,6 @@ using AutoMapper;
 using AzureStorage;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Repositories;
-using Microsoft.WindowsAzure.Storage.Table;
 
 namespace Lykke.Service.LP3.AzureRepositories
 {
@@ -62,12 +61,7 @@ namespace Lykke.Service.LP3.AzureRepositories
             await _storage.DeleteAsync(data);
         }
 
-        public  Task AddBatchAsync(IEnumerable<LimitOrder> orders)
-        {
-            return UpdateBatchAsync(orders);
-        }
-
-        public async Task UpdateBatchAsync(IEnumerable<LimitOrder> orders)
+        public async Task AddOrUpdateBatchAsync(IEnumerable<LimitOrder> orders)
         {
             var models = orders.Select(x =>
             {

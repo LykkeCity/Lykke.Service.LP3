@@ -17,8 +17,6 @@ namespace Lykke.Service.LP3.Domain.Services
         
         Task ClearAsync(string assetPairId);
         
-        Task AddBatchAsync(IEnumerable<LimitOrder> orders);
-        
-        Task UpdateBatchAsync(IEnumerable<LimitOrder> orders);
+        Task AddOrUpdateBatchAsync(IEnumerable<LimitOrder> orders);
     }
 }

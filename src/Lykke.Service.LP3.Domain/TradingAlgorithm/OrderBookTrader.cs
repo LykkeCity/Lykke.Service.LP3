@@ -157,7 +157,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     _orders.AddLast(newOrder);
                     addedOrders.Add(newOrder);
                     
-                    volume -= limitOrder.Volume;
+                    volume -= Math.Min(limitOrder.Volume, volume); // for the case if order's volume bigger the volume
 
                     if (limitOrder.TradeType == TradeType.Sell)
                     {

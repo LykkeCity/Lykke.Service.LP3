@@ -82,7 +82,9 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             {
                 price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
 
-                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, i + 1);
+                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
+
+                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, number);
             }
         }
         

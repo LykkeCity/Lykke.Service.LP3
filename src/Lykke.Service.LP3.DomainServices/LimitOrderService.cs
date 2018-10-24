@@ -41,14 +41,9 @@ namespace Lykke.Service.LP3.DomainServices
             return _limitOrderRepository.ClearAsync(assetPairId);
         }
 
-        public Task AddBatchAsync(IEnumerable<LimitOrder> orders)
+        public Task AddOrUpdateBatchAsync(IEnumerable<LimitOrder> orders)
         {
-            return _limitOrderRepository.AddBatchAsync(orders);
-        }
-
-        public Task UpdateBatchAsync(IEnumerable<LimitOrder> orders)
-        {
-            return _limitOrderRepository.UpdateBatchAsync(orders);
+            return _limitOrderRepository.AddOrUpdateBatchAsync(orders);
         }
     }
 }

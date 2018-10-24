@@ -230,6 +230,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 throw new ArgumentException("LimitOrder is for another AssetPair");
             
             _orders.AddLast(limitOrder);
+            
+            MarkOrdersIfDisabled(_orders);
         }
 
         public LimitOrder CancelOrder(Guid orderId)

@@ -112,16 +112,16 @@ namespace Lykke.Service.LP3.DomainServices
                     var (addedOrders, removedOrders) = trader.HandleTrades(trades, assetPairInfo.MinVolume);
 
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
-
+                    
+                    foreach (var removedOrder in removedOrders)
+                    {
+                        await _limitOrderService.DeleteAsync(removedOrder.AssetPairId, removedOrder.Id);
+                    }
+                    
                     foreach (var addedOrder in addedOrders)
                     {
                         await ApplySingleOrderAsync(addedOrder);
                         await _limitOrderService.AddAsync(addedOrder);
-                    }
-
-                    foreach (var removedOrder in removedOrders)
-                    {
-                        await _limitOrderService.DeleteAsync(removedOrder.AssetPairId, removedOrder.Id);
                     }
                 }
                 catch (Exception e)

@@ -184,6 +184,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                         Inventory += volume;
                         OppositeInventory -= volume * limitOrder.Price;
                     }
+
+                    volume = 0;
                 }
                 
                 if (volume == 0)

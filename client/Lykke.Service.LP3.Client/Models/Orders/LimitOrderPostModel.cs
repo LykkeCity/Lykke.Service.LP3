@@ -1,3 +1,6 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace Lykke.Service.LP3.Client.Models.Orders
 {
     public class LimitOrderPostModel
@@ -10,6 +13,7 @@ namespace Lykke.Service.LP3.Client.Models.Orders
         
         public decimal Number { get; set; }
         
+        [JsonConverter(typeof(StringEnumConverter))]
         public TradeType TradeType { get; set; }
     }
 }

@@ -73,44 +73,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 
             return _orders;
         }
-        
-        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
-        {
-            decimal price = initialPrice;
-            
-            for (int i = 0; i < Count; i++)
-            {
-                price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
-
-                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
-
-                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, number);
-            }
-        }
-        
-        private decimal AddDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) + (double) Delta);
-        
-        private decimal SubtractDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) - (double) Delta);
-
-        private void MarkOrdersIfDisabled(IEnumerable<LimitOrder> orders)
-        {
-            if (!IsEnabled)
-            {
-                orders.ForEach(x =>
-                {
-                    x.Error = LimitOrderError.OrderBookIsDisabled;
-                    x.ErrorMessage = "Order book is disabled";
-                });
-            }
-            else
-            {
-                orders.ForEach(x =>
-                {
-                    x.Error = LimitOrderError.None;
-                    x.ErrorMessage = null;
-                });
-            }
-        }
 
         public (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
             HandleTrades(IReadOnlyCollection<Trade> trades, decimal minVolume)
@@ -126,6 +88,57 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             }
 
             return (addedOrders, removedOrders);
+        }
+
+        public void UpdateSettings(OrderBookTraderSettings settings)
+        {
+            IsEnabled = settings.IsEnabled;
+            MarkOrdersIfDisabled(_orders);
+
+            if (settings.InitialPrice != 0)
+            {
+                InitialPrice = settings.InitialPrice;
+            }
+            
+            Delta = settings.Delta;
+            Count = settings.Count;
+            Volume = settings.Volume;    
+        }
+
+        public IReadOnlyCollection<LimitOrder> GetOrders()
+        {
+            return _orders;
+        }
+
+        public void AddOrderManually([NotNull] LimitOrder limitOrder)
+        {
+            if (limitOrder == null) throw new ArgumentNullException(nameof(limitOrder));
+
+            if (!string.Equals(limitOrder.AssetPairId, AssetPairId, StringComparison.InvariantCultureIgnoreCase))
+                throw new ArgumentException("LimitOrder is for another AssetPair");
+            
+            _orders.AddLast(limitOrder);
+            
+            MarkOrdersIfDisabled(_orders);
+        }
+
+        public LimitOrder CancelOrder(Guid orderId)
+        {
+            var order = _orders.SingleOrDefault(x => x.Id == orderId);
+            _orders.Remove(order);
+            return order;
+        }
+
+        public void Clear()
+        {
+            _orders.Clear();
+        }
+
+        public void RestoreOrders(IEnumerable<LimitOrder> limitOrders)
+        {
+            _orders.Clear();
+            
+            limitOrders.ForEach(x => _orders.AddLast(x));
         }
 
         private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
@@ -197,62 +210,49 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             return (addedOrders, removedOrders);
         }
         
+        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
+        {
+            decimal price = initialPrice;
+            
+            for (int i = 0; i < Count; i++)
+            {
+                price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
+
+                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
+
+                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, number);
+            }
+        }
+        
+        private decimal AddDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) + (double) Delta);
+        
+        private decimal SubtractDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) - (double) Delta);
+
+        private void MarkOrdersIfDisabled(IEnumerable<LimitOrder> orders)
+        {
+            if (!IsEnabled)
+            {
+                orders.ForEach(x =>
+                {
+                    x.Error = LimitOrderError.OrderBookIsDisabled;
+                    x.ErrorMessage = "Order book is disabled";
+                });
+            }
+            else
+            {
+                orders.ForEach(x =>
+                {
+                    x.Error = LimitOrderError.None;
+                    x.ErrorMessage = null;
+                });
+            }
+        }
+        
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {
             return executedOrder.TradeType == TradeType.Sell
                 ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
                 : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
-        }
-
-        public void UpdateSettings(OrderBookTraderSettings settings)
-        {
-            IsEnabled = settings.IsEnabled;
-            MarkOrdersIfDisabled(_orders);
-
-            if (settings.InitialPrice != 0)
-            {
-                InitialPrice = settings.InitialPrice;
-            }
-            
-            Delta = settings.Delta;
-            Count = settings.Count;
-            Volume = settings.Volume;    
-        }
-
-        public IReadOnlyCollection<LimitOrder> GetOrders()
-        {
-            return _orders;
-        }
-
-        public void AddOrderManually([NotNull] LimitOrder limitOrder)
-        {
-            if (limitOrder == null) throw new ArgumentNullException(nameof(limitOrder));
-
-            if (!string.Equals(limitOrder.AssetPairId, AssetPairId, StringComparison.InvariantCultureIgnoreCase))
-                throw new ArgumentException("LimitOrder is for another AssetPair");
-            
-            _orders.AddLast(limitOrder);
-            
-            MarkOrdersIfDisabled(_orders);
-        }
-
-        public LimitOrder CancelOrder(Guid orderId)
-        {
-            var order = _orders.SingleOrDefault(x => x.Id == orderId);
-            _orders.Remove(order);
-            return order;
-        }
-
-        public void Clear()
-        {
-            _orders.Clear();
-        }
-
-        public void RestoreOrders(IEnumerable<LimitOrder> limitOrders)
-        {
-            _orders.Clear();
-            
-            limitOrders.ForEach(x => _orders.AddLast(x));
         }
     }
 }

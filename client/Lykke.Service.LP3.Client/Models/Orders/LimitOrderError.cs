@@ -6,14 +6,6 @@ namespace Lykke.Service.LP3.Client.Models.Orders
 
         Unknown = 1,
 
-        Arbitrage = 2,
-        
-        EmptyOrderBook = 3,
-        
-        ExceedsSideSumVolume = 4,
-        
-        OrderBookIsDisabled = 5,
-
         LowBalance = 401,
 
         NoLiquidity = 411,

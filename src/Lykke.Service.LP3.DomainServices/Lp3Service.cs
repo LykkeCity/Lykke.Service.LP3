@@ -53,38 +53,6 @@ namespace Lykke.Service.LP3.DomainServices
         {
             SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();
         }
-
-        private void Retry(object state)
-        {
-            SynchronizeAsync(async () =>
-            {
-                if (!_retryNeededForTraders.Any())
-                    return;
-
-                var assetPairId = _retryNeededForTraders.First();
-                
-                _log.Info($"Retrying placing order for {assetPairId}");
-
-                var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId);
-                if (trader != null)
-                {
-                    await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders());
-                }
-            }).GetAwaiter().GetResult();
-        }
-
-        private async Task StartAsync()
-        {
-            var traders = await _orderBookTraderService.GetOrderBookTradersAsync();
-            var orders = await _limitOrderService.GetAllAsync();
-
-            foreach (var trader in traders)
-            {
-                var ordersForTrader = orders.Where(x => x.AssetPairId == trader.AssetPairId).ToList();
-                trader.RestoreOrders(ordersForTrader);
-                _log.Info($"There were {ordersForTrader.Count} orders restored for trader {trader.AssetPairId}");
-            }
-        }
         
         public async Task HandleTradesAsync(IReadOnlyCollection<Trade> trades)
         {
@@ -285,6 +253,44 @@ namespace Lykke.Service.LP3.DomainServices
             });
         }
 
+        public void Dispose()
+        {
+            _semaphore?.Dispose();
+            _retryTimer?.Dispose();
+        }
+
+        private void Retry(object state)
+        {
+            SynchronizeAsync(async () =>
+            {
+                if (!_retryNeededForTraders.Any())
+                    return;
+
+                var assetPairId = _retryNeededForTraders.First();
+                
+                _log.Info($"Retrying placing order for {assetPairId}");
+
+                var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId);
+                if (trader != null)
+                {
+                    await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders());
+                }
+            }).GetAwaiter().GetResult();
+        }
+
+        private async Task StartAsync()
+        {
+            var traders = await _orderBookTraderService.GetOrderBookTradersAsync();
+            var orders = await _limitOrderService.GetAllAsync();
+
+            foreach (var trader in traders)
+            {
+                var ordersForTrader = orders.Where(x => x.AssetPairId == trader.AssetPairId).ToList();
+                trader.RestoreOrders(ordersForTrader);
+                _log.Info($"There were {ordersForTrader.Count} orders restored for trader {trader.AssetPairId}");
+            }
+        }
+
         private async Task SynchronizeAsync(Func<Task> asyncAction)
         {
             bool lockTaken = false;
@@ -468,12 +474,6 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 _log.Error(e, "Can't validate balances for buy orders", context: $"assetPairInfo: {assetPairInfo.ToJson()}");
             }
-        }
-
-        public void Dispose()
-        {
-            _semaphore?.Dispose();
-            _retryTimer?.Dispose();
         }
     }
 }

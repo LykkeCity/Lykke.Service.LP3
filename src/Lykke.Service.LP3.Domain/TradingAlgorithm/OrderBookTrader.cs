@@ -4,6 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
+using MoreLinq;
 using LimitOrder = Lykke.Service.LP3.Domain.Orders.LimitOrder;
 
 namespace Lykke.Service.LP3.Domain.TradingAlgorithm
@@ -11,81 +12,223 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
     public class OrderBookTrader
     {
         public string AssetPairId { get; }
-        
-        public decimal LevelVolumeSell { get; private set; }
-        public decimal LevelVolumeBuy { get; private set; }
-        public decimal LevelDelta { get; private set; }
-        public decimal LevelOriginalVolume { get; private set; }
-        public decimal ReferencePrice { get; private set; }
+
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set
+            {
+                _isEnabled = value;
+                MarkOrdersIfDisabled(_orders);
+            }
+        }
+
+        public decimal Delta { get; private set; }
+        public decimal Volume { get; private set; }
+        public int Count { get; private set; }
+        public decimal InitialPrice { get; private set; }
 
         public decimal Inventory { get; private set; }
         public decimal OppositeInventory { get; private set; }
 
-        public bool IsEnabled { get; private set; }
-        
-        public decimal AdditionalOrdersDelta { get; private set; }
-        public decimal AdditionalOrdersVolume { get; private set; }
-        public int AdditionalOrdersCount { get; private set; }
-
+        private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
+        private bool _isEnabled;
 
         public OrderBookTrader(OrderBookTraderSettings settings)
         {
             AssetPairId = settings.AssetPairId;
             IsEnabled = settings.IsEnabled;
-            ReferencePrice = settings.ReferencePrice;
+            InitialPrice = settings.InitialPrice;
             
-            LevelDelta = settings.LevelDelta;
-            LevelOriginalVolume = settings.LevelOriginalVolume;
-            LevelVolumeBuy = settings.LevelOriginalVolume;
-            LevelVolumeSell = -settings.LevelOriginalVolume;
-            
-            AdditionalOrdersDelta = settings.AdditionalOrdersDelta;
-            AdditionalOrdersVolume = settings.AdditionalOrdersVolume;
-            AdditionalOrdersCount = settings.AdditionalOrdersCount;
+            Delta = settings.Delta;
+            Volume = settings.Volume;
+            Count = settings.Count;
         }
         
         [UsedImplicitly] // used by Mapper
-        public OrderBookTrader(string assetPairId, bool isEnabled, decimal referencePrice, 
-            decimal levelDelta, decimal levelOriginalVolume, decimal levelVolumeBuy, decimal levelVolumeSell, 
-            decimal additionalOrdersDelta, decimal additionalOrdersVolume, int additionalOrdersCount, 
-            decimal inventory, decimal oppositeInventory)
+        public OrderBookTrader(string assetPairId, bool isEnabled, decimal initialPrice, decimal delta, 
+            decimal volume, int count, decimal inventory, decimal oppositeInventory) 
+            : this(new OrderBookTraderSettings
+                {
+                    AssetPairId = assetPairId,
+                    IsEnabled = isEnabled,
+                    Delta = delta,
+                    Volume = volume,
+                    Count = count,
+                    InitialPrice = initialPrice
+                })
         {
-            AssetPairId = assetPairId;
-            IsEnabled = isEnabled;
-            ReferencePrice = referencePrice;
-            
-            LevelDelta = levelDelta;
-            LevelOriginalVolume = levelOriginalVolume;
-            LevelVolumeBuy = levelVolumeBuy;
-            LevelVolumeSell = levelVolumeSell;
-            
-            AdditionalOrdersDelta = additionalOrdersDelta;
-            AdditionalOrdersVolume = additionalOrdersVolume;
-            AdditionalOrdersCount = additionalOrdersCount;
-            
             Inventory = inventory;
             OppositeInventory = oppositeInventory;
         }
         
-        private decimal Sell => (decimal) Math.Exp(Math.Log((double) ReferencePrice) + (double) LevelDelta);
-        private decimal Buy => (decimal) Math.Exp(Math.Log((double) ReferencePrice) - (double) LevelDelta);
-        
-        private readonly AdditionalOrdersGenerator _additionalOrdersGenerator = new AdditionalOrdersGenerator();
+        public IReadOnlyCollection<LimitOrder> CreateOrders()
+        {
+            _orders.Clear();
+            
+            CreateOrders(InitialPrice, TradeType.Sell).ForEach(x => _orders.AddLast(x));
+            CreateOrders(InitialPrice, TradeType.Buy).ForEach(x => _orders.AddLast(x));
+            
+            MarkOrdersIfDisabled(_orders);
+
+            return _orders;
+        }
+
+        public (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+            HandleTrades(IReadOnlyCollection<Trade> trades, decimal minVolume)
+        {
+            var addedOrders = new List<LimitOrder>();
+            var removedOrders = new List<LimitOrder>();
+            
+            foreach (var trade in trades)
+            {
+                var (addedOrdersFromTrade, removedOrdersFromTrade) = HandleTrade(trade, minVolume);
+                addedOrders.AddRange(addedOrdersFromTrade);
+                removedOrders.AddRange(removedOrdersFromTrade);
+            }
+
+            return (addedOrders, removedOrders);
+        }
+
+        public void UpdateSettings(OrderBookTraderSettings settings)
+        {
+            IsEnabled = settings.IsEnabled;
+            MarkOrdersIfDisabled(_orders);
+
+            if (settings.InitialPrice != 0)
+            {
+                InitialPrice = settings.InitialPrice;
+            }
+            
+            Delta = settings.Delta;
+            Count = settings.Count;
+            Volume = settings.Volume;    
+        }
 
         public IReadOnlyCollection<LimitOrder> GetOrders()
         {
-            var levelOrders = GetLevelOrders();
-            var additionalOrders = _additionalOrdersGenerator.GetOrders(levelOrders,
-                AdditionalOrdersCount, AdditionalOrdersVolume, AdditionalOrdersDelta);
-
-            var orders = levelOrders.Union(additionalOrders).ToList();
-
-            MarkOrdersIfDisabled(orders);
-
-            return orders;
+            return _orders;
         }
 
-        private void MarkOrdersIfDisabled(List<LimitOrder> orders)
+        public void AddOrderManually([NotNull] LimitOrder limitOrder)
+        {
+            if (limitOrder == null) throw new ArgumentNullException(nameof(limitOrder));
+
+            if (!string.Equals(limitOrder.AssetPairId, AssetPairId, StringComparison.InvariantCultureIgnoreCase))
+                throw new ArgumentException("LimitOrder is for another AssetPair");
+            
+            _orders.AddLast(limitOrder);
+            
+            MarkOrdersIfDisabled(_orders);
+        }
+
+        public LimitOrder CancelOrder(Guid orderId)
+        {
+            var order = _orders.SingleOrDefault(x => x.Id == orderId);
+            _orders.Remove(order);
+            return order;
+        }
+
+        public void Clear()
+        {
+            _orders.Clear();
+        }
+
+        public void RestoreOrders(IEnumerable<LimitOrder> limitOrders)
+        {
+            _orders.Clear();
+            
+            limitOrders.ForEach(x => _orders.AddLast(x));
+        }
+
+        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+            HandleTrade(Trade trade, decimal minVolume)
+        {
+            if (trade.Type == TradeType.None) throw new ArgumentException("Trade has None type", nameof(trade));
+
+            return SpreadVolumeOnOrders(
+                trade.Type == TradeType.Sell
+                    ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
+                    : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
+                trade.Volume, minVolume);
+        }
+        
+        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
+        {
+            var addedOrders = new List<LimitOrder>();
+            var removedOrders = new List<LimitOrder>();
+            
+            foreach (var limitOrder in orders)
+            {
+                if (limitOrder.Volume <= volume || limitOrder.Volume - volume < minVolume)
+                {
+                    _orders.Remove(limitOrder);
+                    removedOrders.Add(limitOrder);
+                    
+                    var newOrder = CreateOppositeOrder(limitOrder);
+                    _orders.AddLast(newOrder);
+                    addedOrders.Add(newOrder);
+                    
+                    volume -= Math.Min(limitOrder.Volume, volume); // for the case if order's volume bigger the volume
+
+                    if (limitOrder.TradeType == TradeType.Sell)
+                    {
+                        Inventory -= limitOrder.Volume;
+                        OppositeInventory += limitOrder.Volume * limitOrder.Price;
+                    }
+                    else
+                    {
+                        Inventory += limitOrder.Volume;
+                        OppositeInventory -= limitOrder.Volume * limitOrder.Price;
+                    }
+                }
+                else
+                {
+                    limitOrder.Volume -= volume;
+                    
+                    if (limitOrder.TradeType == TradeType.Sell)
+                    {
+                        Inventory -= volume;
+                        OppositeInventory += volume * limitOrder.Price;
+                    }
+                    else
+                    {
+                        Inventory += volume;
+                        OppositeInventory -= volume * limitOrder.Price;
+                    }
+
+                    volume = 0;
+                }
+                
+                if (volume == 0)
+                {
+                    break;
+                }
+            }
+
+            return (addedOrders, removedOrders);
+        }
+        
+        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
+        {
+            decimal price = initialPrice;
+            
+            for (int i = 0; i < Count; i++)
+            {
+                price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
+
+                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
+
+                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, number);
+            }
+        }
+        
+        private decimal AddDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) + (double) Delta);
+        
+        private decimal SubtractDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) - (double) Delta);
+
+        private void MarkOrdersIfDisabled(IEnumerable<LimitOrder> orders)
         {
             if (!IsEnabled)
             {
@@ -95,109 +238,21 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     x.ErrorMessage = "Order book is disabled";
                 });
             }
-        }
-
-        private IReadOnlyCollection<LimitOrder> GetLevelOrders()
-        {
-            var sellOrder = new LimitOrder(Sell, Math.Abs(LevelVolumeSell), TradeType.Sell)
+            else
             {
-                AssetPairId = AssetPairId
-            };
-            
-            var buyOrder = new LimitOrder(Buy, LevelVolumeBuy, TradeType.Buy)
-            {
-                AssetPairId = AssetPairId
-            };
-            
-            return new[] { sellOrder, buyOrder };
-        }
-
-        public void HandleTrades(IReadOnlyCollection<Trade> trades)
-        {
-            decimal volume = trades.Select(x => x.Type == TradeType.Sell ? -x.Volume : x.Volume).Sum();
-            
-            if (volume < 0)
-            {
-                HandleSellVolume(volume);
-            }
-
-            if (volume > 0)
-            {
-                HandleBuyVolume(volume);
+                orders.ForEach(x =>
+                {
+                    x.Error = LimitOrderError.None;
+                    x.ErrorMessage = null;
+                });
             }
         }
         
-        private void HandleSellVolume(decimal volume)
+        private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {
-            while (volume != 0)
-            {
-                if (volume <= LevelVolumeSell)
-                {
-                    volume -= LevelVolumeSell;
-
-                    Inventory += LevelVolumeSell;
-                    OppositeInventory -= LevelVolumeSell * Sell; // TODO: get rounded price from trade ? 
-
-                    ReferencePrice = Sell;
-                    LevelVolumeSell = -LevelOriginalVolume;
-                }
-                else
-                {
-                    LevelVolumeSell -= volume;
-
-                    Inventory += volume;
-                    OppositeInventory -= volume * Sell;
-
-                    volume = 0;
-                }
-            }
-        }
-
-        private void HandleBuyVolume(decimal volume)
-        {
-            while (volume != 0)
-            {
-                if (volume >= LevelVolumeBuy)
-                {
-                    volume -= LevelVolumeBuy;
-
-                    Inventory += LevelVolumeBuy;
-                    OppositeInventory -= LevelVolumeBuy * Buy;
-
-                    ReferencePrice = Buy;
-                    LevelVolumeBuy = LevelOriginalVolume;
-                }
-                else
-                {
-                    LevelVolumeBuy -= volume;
-                    Inventory += volume;
-                    OppositeInventory -= volume * Buy;
-                    volume = 0;
-                }
-            }
-        }
-
-        public void UpdateSettings(OrderBookTraderSettings settings)
-        {
-            IsEnabled = settings.IsEnabled;
-
-            if (settings.ReferencePrice != 0)
-            {
-                ReferencePrice = settings.ReferencePrice;
-            }
-            
-            LevelDelta = settings.LevelDelta;
-            
-            AdditionalOrdersDelta = settings.AdditionalOrdersDelta;
-            AdditionalOrdersVolume = settings.AdditionalOrdersVolume;
-            AdditionalOrdersCount = settings.AdditionalOrdersCount;
-            
-            if (settings.LevelOriginalVolume != LevelOriginalVolume)
-            {
-                LevelVolumeSell = -settings.LevelOriginalVolume;
-                LevelVolumeBuy = settings.LevelOriginalVolume;
-                LevelOriginalVolume = settings.LevelOriginalVolume;    
-            }
+            return executedOrder.TradeType == TradeType.Sell
+                ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
+                : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
         }
     }
 }

@@ -53,6 +53,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 map[multiOrderItem.Id] = limitOrder;
                 
                 multiOrderItems.Add(multiOrderItem);
+
+                limitOrder.ExternalId = multiOrderItem.Id;
             }
 
             var multiLimitOrder = new MultiLimitOrderModel
@@ -105,6 +107,80 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                         ? orderStatus.StatusReason
                         : !string.IsNullOrEmpty(orderStatus.StatusReason) ? orderStatus.StatusReason : "Unknown error";    
                 }
+            }
+        }
+
+        public async Task PlaceLimitOrderAsync(LimitOrder limitOrder)
+        {
+            var model = new LimitOrderModel
+            {
+                AssetPairId = limitOrder.AssetPairId,
+                CancelPreviousOrders = false,
+                ClientId = _walletId,
+                Id = Guid.NewGuid().ToString(),
+                OrderAction = limitOrder.TradeType.ToOrderAction(),
+                Price = (double) limitOrder.Price,
+                Volume = (double) limitOrder.Volume,
+            };
+
+            limitOrder.ExternalId = model.Id;
+
+            MeResponseModel response;
+            try
+            {
+                response = await _matchingEngineClient.PlaceLimitOrderAsync(model, 
+                    new CancellationTokenSource(Consts.MatchingEngineTimeout).Token);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "An error occurred during creating limit orders",
+                    new {request = $"data: {model.ToJson()}"});
+
+                throw;
+            }
+            
+            if (response == null)
+            {
+                throw new Exception("ME response is null");
+            }
+
+            if (response.Status == MeStatusCodes.Ok)
+            {
+                _log.Info("ME place limit order response", new {response = $"data: {response.ToJson()}"});
+
+                limitOrder.Error = LimitOrderError.None;
+            }
+            else
+            {
+                _log.Warning("ME place limit order response unsuccessful code.", context: new {response = $"data: {response.ToJson()}"});
+                limitOrder.Error = response.Status.ToOrderError();
+                limitOrder.ErrorMessage = limitOrder.Error != LimitOrderError.Unknown 
+                    ? response.Message
+                    : !string.IsNullOrEmpty(response.Message) ? response.Message : "Unknown error";
+            }
+        }
+
+        public async Task CancelLimitOrderAsync(string id)
+        {
+            MeResponseModel response;
+            try
+            {
+                response = await _matchingEngineClient.CancelLimitOrderAsync(id, 
+                    new CancellationTokenSource(Consts.MatchingEngineTimeout).Token);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "An error occurred during cancel limit order", new {request = $"id: {id}"});
+                throw;
+            }
+         
+            if (response.Status == MeStatusCodes.Ok)
+            {
+                _log.Info("ME cancel limit order response", new {response = $"data: {response.ToJson()}"});
+            }
+            else
+            {
+                _log.Warning("ME cancel limit order response unsuccessful code.", context: new {response = $"data: {response.ToJson()}"});
             }
         }
     }

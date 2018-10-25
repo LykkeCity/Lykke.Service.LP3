@@ -6,24 +6,16 @@ namespace Lykke.Service.LP3.Client.Models
         
         public bool IsEnabled { get; set; }
         
-        public decimal ReferencePrice { get; set; }
+        public decimal InitialPrice { get; set; }
         
-        public decimal LevelDelta { get; set; }
+        public decimal Delta { get; set; }
         
-        public decimal LevelOriginalVolume { get; set; }
+        public decimal Volume { get; set; }
         
-        public decimal AdditionalOrdersDelta { get; set; }
-        
-        public decimal AdditionalOrdersVolume { get; set; }
-        
-        public int AdditionalOrdersCount { get; set; }
+        public int Count { get; set; }
         
         public decimal Inventory { get; set; }
         
         public decimal OppositeInventory { get; set; }
-        
-        public decimal LevelVolumeSell { get; set; }
-        
-        public decimal LevelVolumeBuy { get; set; }
     }
 }

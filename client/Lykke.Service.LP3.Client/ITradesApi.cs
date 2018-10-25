@@ -8,6 +8,9 @@ namespace Lykke.Service.LP3.Client
 {
     public interface ITradesApi
     {
+        /// <summary>
+        /// Get the executed trades by time interval
+        /// </summary>
         [Get("/api/trades")]
         Task<IReadOnlyList<TradeModel>> GetAsync([Query] DateTime startDate, [Query] DateTime endDate);
     }

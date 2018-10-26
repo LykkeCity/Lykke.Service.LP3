@@ -535,6 +535,10 @@ namespace Lykke.Service.LP3.DomainServices
                     {
                         order.Error = LimitOrderError.NotEnoughFunds;
                     }
+                    else if (order.Error == LimitOrderError.NotEnoughFunds)
+                    {
+                        order.Error = LimitOrderError.None;
+                    }
                 }
             }
             catch (Exception e)

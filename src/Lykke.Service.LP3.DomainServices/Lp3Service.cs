@@ -87,6 +87,8 @@ namespace Lykke.Service.LP3.DomainServices
                     }
 
                     var allCurrentOrders = trader.GetOrders();
+
+                    await _balanceService.UpdateBalancesAsync();
                     
                     foreach (var addedOrder in addedOrders)
                     {
@@ -488,7 +490,7 @@ namespace Lykke.Service.LP3.DomainServices
                     {
                         order.Error = LimitOrderError.NotEnoughFunds;
                     }
-                }    
+                }
             }
             catch (Exception e)
             {

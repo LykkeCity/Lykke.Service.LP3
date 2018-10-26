@@ -438,7 +438,7 @@ namespace Lykke.Service.LP3.DomainServices
             try
             {
                 var baseBalance = await _balanceService.GetByAssetIdAsync(assetPairInfo.BaseAssetId);
-                var balance = baseBalance.Amount;
+                var balance = baseBalance.Available;
 
                 foreach (var order in orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price))
                 {

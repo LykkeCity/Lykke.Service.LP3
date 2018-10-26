@@ -477,6 +477,10 @@ namespace Lykke.Service.LP3.DomainServices
                     {
                         order.Error = LimitOrderError.NotEnoughFunds;
                     }
+                    else if (order.Error == LimitOrderError.NotEnoughFunds)
+                    {
+                        order.Error = LimitOrderError.None;
+                    }
                 }
                 else
                 {
@@ -489,6 +493,10 @@ namespace Lykke.Service.LP3.DomainServices
                     if (currentlyUsedBalance + order.Volume * order.Price > availableBalance)
                     {
                         order.Error = LimitOrderError.NotEnoughFunds;
+                    }
+                    else if (order.Error == LimitOrderError.NotEnoughFunds)
+                    {
+                        order.Error = LimitOrderError.None;
                     }
                 }
             }

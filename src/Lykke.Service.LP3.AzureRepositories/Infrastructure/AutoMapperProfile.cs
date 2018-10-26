@@ -1,4 +1,5 @@
 using AutoMapper;
+using Lykke.Service.LP3.Domain.Assets;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.TradingAlgorithm;
 
@@ -16,6 +17,9 @@ namespace Lykke.Service.LP3.AzureRepositories.Infrastructure
 
             CreateMap<LimitOrderEntity, LimitOrder>(MemberList.Destination);
             CreateMap<LimitOrder, LimitOrderEntity>(MemberList.Source);
+
+            CreateMap<AssetPairEntity, AssetPairInfo>(MemberList.Destination);
+            CreateMap<AssetPairInfo, AssetPairEntity>(MemberList.Source);
         }
     }
 }

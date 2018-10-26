@@ -240,7 +240,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             }
             else
             {
-                orders.ForEach(x =>
+                orders.Where(x => x.Error == LimitOrderError.OrderBookIsDisabled).ForEach(x =>
                 {
                     x.Error = LimitOrderError.None;
                     x.ErrorMessage = null;

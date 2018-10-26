@@ -94,11 +94,11 @@ namespace Lykke.Service.LP3.DomainServices.Balances
 
         private void LogChangedBalances(IReadOnlyCollection<Balance> balances)
         {
-            IEnumerable<string> changedBalances = balances.Select(currentBalance =>
+            List<string> changedBalances = balances.Select(currentBalance =>
             {
                 var previousBalance = _cache.Get(currentBalance.AssetId);
 
-                if (previousBalance.Amount != currentBalance.Amount ||
+                if (previousBalance == null || previousBalance.Amount != currentBalance.Amount ||
                     previousBalance.Reserved != currentBalance.Reserved)
                 {
                     return $"{{ \"previous\": {previousBalance.ToJson()}, \"current\" {currentBalance.ToJson()} }}";

@@ -1,27 +1,13 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Lykke.Service.LP3.Client.Models;
-using Lykke.Service.LP3.Client.Models.Settings;
 using Refit;
 
 namespace Lykke.Service.LP3.Client
 {
     public interface ISettingsApi
     {
-        [Get("/api/settings/orderBookTraders")]
-        Task<IReadOnlyList<OrderBookTraderModel>> GetOrderBookTradersSettingsAsync();
-        
-        [Put("/api/settings/orderBookTraders")]
-        Task UpdateOrderBookTraderSettingsAsync(OrderBookTraderSettingsModel model);
-                
-        [Post("/api/settings/orderBookTraders")]
-        Task AddOrderBookTraderAsync(OrderBookTraderSettingsModel model);
-        
-        [Delete("/api/settings/orderBookTraders/{assetPairId}")]
-        Task DeleteOrderBookTraderAsync(string assetPairId);
-        
-        
-
+        /// <summary>
+        /// Get the current WalletId on which all the traders operate
+        /// </summary>
         [Get("/api/settings/walletId")]
         Task<string> GetWalletIdAsync();
     }

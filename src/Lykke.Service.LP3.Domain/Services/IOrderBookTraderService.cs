@@ -17,6 +17,6 @@ namespace Lykke.Service.LP3.Domain.Services
 
         Task PersistOrderBookTraderAsync(OrderBookTrader orderBookTrader);
 
-        OrderBookTrader GetTraderByAssetPairId(string assetPairId);
+        Task<OrderBookTrader> GetTraderByAssetPairIdAsync(string assetPairId);
     }
 }

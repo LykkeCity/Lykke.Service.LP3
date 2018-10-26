@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
+using Common;
 using Common.Log;
 using JetBrains.Annotations;
 using Lykke.Common.Log;
@@ -75,6 +76,8 @@ namespace Lykke.Service.LP3.DomainServices.Balances
                     })
                     .ToArray();
 
+                LogChangedBalances(balances);
+
                 _cache.Set(balances);
             }
             catch (Exception exception)
@@ -87,6 +90,28 @@ namespace Lykke.Service.LP3.DomainServices.Balances
         {
             _log.Info("Updating balances on start");
             UpdateBalancesAsync().GetAwaiter().GetResult();
+        }
+
+        private void LogChangedBalances(IReadOnlyCollection<Balance> balances)
+        {
+            List<string> changedBalances = balances.Select(currentBalance =>
+            {
+                var previousBalance = _cache.Get(currentBalance.AssetId);
+
+                if (previousBalance == null || previousBalance.Amount != currentBalance.Amount ||
+                    previousBalance.Reserved != currentBalance.Reserved)
+                {
+                    return $"{{ \"previous\": {previousBalance.ToJson()}, \"current\" {currentBalance.ToJson()} }}";
+                }
+
+                return null;
+            }).Where(x => x != null).ToList();
+
+
+            if (changedBalances.Any())
+            {
+                _log.Info("Balances were changed", context: $"changed balances: [{string.Join(", ", changedBalances)}]");
+            }
         }
     }
 }

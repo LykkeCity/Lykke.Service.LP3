@@ -170,8 +170,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     _orders.AddLast(newOrder);
                     addedOrders.Add(newOrder);
                     
-                    volume -= Math.Min(limitOrder.Volume, volume); // for the case if order's volume bigger the volume
-
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= limitOrder.Volume;
@@ -181,6 +179,13 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     {
                         Inventory += limitOrder.Volume;
                         OppositeInventory -= limitOrder.Volume * limitOrder.Price;
+                    }
+
+                    volume -= limitOrder.Volume;
+                    
+                    if (volume <= 0)
+                    {
+                        break;
                     }
                 }
                 else
@@ -198,11 +203,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                         OppositeInventory -= volume * limitOrder.Price;
                     }
 
-                    volume = 0;
-                }
-                
-                if (volume == 0)
-                {
                     break;
                 }
             }
@@ -240,7 +240,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             }
             else
             {
-                orders.ForEach(x =>
+                orders.Where(x => x.Error == LimitOrderError.OrderBookIsDisabled).ForEach(x =>
                 {
                     x.Error = LimitOrderError.None;
                     x.ErrorMessage = null;

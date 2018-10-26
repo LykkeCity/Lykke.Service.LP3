@@ -470,7 +470,7 @@ namespace Lykke.Service.LP3.DomainServices
                     decimal availableBalance = (await _balanceService.GetByAssetIdAsync(assetPairInfo.BaseAssetId))?.Available ?? 0;
                     decimal currentlyUsedBalance = currentOrders
                         .Where(x => x != order)
-                        .Where(x => x.TradeType == TradeType.Sell)
+                        .Where(x => x.TradeType == TradeType.Sell && x.Error == LimitOrderError.None)
                         .Sum(x => x.Volume);
 
                     if (currentlyUsedBalance + order.Volume > availableBalance)
@@ -483,7 +483,7 @@ namespace Lykke.Service.LP3.DomainServices
                     decimal availableBalance = (await _balanceService.GetByAssetIdAsync(assetPairInfo.QuoteAssetId))?.Available ?? 0;
                     decimal currentlyUsedBalance = currentOrders
                         .Where(x => x != order)
-                        .Where(x => x.TradeType == TradeType.Buy)
+                        .Where(x => x.TradeType == TradeType.Buy && x.Error == LimitOrderError.None)
                         .Sum(x => x.Volume * x.Price);
 
                     if (currentlyUsedBalance + order.Volume * order.Price > availableBalance)

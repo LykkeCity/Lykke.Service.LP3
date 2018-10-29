@@ -17,7 +17,7 @@ namespace Lykke.Service.LP3.AzureRepositories
         
         public string AssetPairId { get; set; }
         
-        public string Name { get; set; }
+        public string DisplayName { get; set; }
         
         public string ExternalId { get; set; }
         
@@ -27,8 +27,8 @@ namespace Lykke.Service.LP3.AzureRepositories
         
         public decimal MinVolume { get; set; }
         
-        public string BaseAssetExternalId { get; set; }
+        public string BaseAssetId { get; set; }
         
-        public string QuoteAssetExternalId { get; set; }
+        public string QuoteAssetId { get; set; }
     }
 }

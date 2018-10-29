@@ -60,6 +60,11 @@ namespace Lykke.Service.LP3.DomainServices
                 .As<IAssetsService>()
                 .SingleInstance();
 
+            // TODO: enable instead of LykkeAssetsService
+//            builder.RegisterType<AssetsService>()
+//                .As<IAssetsService>()
+//                .SingleInstance();
+
             builder.RegisterType<AssetLinkService>()
                 .As<IAssetLinkService>()
                 .WithParameter(TypedParameter.From(_assetMappings))

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Common.Log;
 using Lykke.Common.Log;
 using Lykke.Service.Assets.Client.Models.v3;
@@ -59,6 +61,26 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         public AssetInfo GetAssetInfo(string assetId)
         {
             throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<AssetPairInfo>> GetAllAsync()
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task AddAssetPairInfoAsync(AssetPairInfo assetPairInfo)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task UpdateAssetPairInfoAsync(AssetPairInfo assetPairInfo)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task DeleteAssetPairInfoAsync(string assetPairId)
+        {
+            throw new NotSupportedException();
         }
     }
 }

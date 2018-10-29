@@ -38,7 +38,7 @@ namespace Lykke.Service.LP3.AzureRepositories
 
             Mapper.Map(assetPair, entity);
 
-            await _storage.InsertOrMergeAsync(entity);
+            await _storage.InsertOrReplaceAsync(entity);
         }
 
         public async Task DeleteAsync(string assetPairId)

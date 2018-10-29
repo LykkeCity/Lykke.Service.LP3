@@ -13,6 +13,7 @@ namespace Lykke.Service.LP3.AzureRepositories
         private decimal _number;
         private decimal _price;
         private decimal _volume;
+        private decimal _originalVolume;
         private TradeType _tradeType;
         private LimitOrderError _error;
         private string _errorMessage;
@@ -76,6 +77,16 @@ namespace Lykke.Service.LP3.AzureRepositories
             {
                 _volume = value;
                 MarkValueTypePropertyAsDirty(nameof(Volume));
+            }
+        }
+
+        public decimal OriginalVolume
+        {
+            get => _originalVolume;
+            set
+            {
+                _originalVolume = value;
+                MarkValueTypePropertyAsDirty(nameof(OriginalVolume));
             }
         }
 

@@ -12,6 +12,8 @@ namespace Lykke.Service.LP3.Client.Models.Orders
 
         public decimal Volume { get; set; }
         
+        public decimal OriginalVolume { get; set; }
+        
         public decimal Number { get; set; }
         
         public string ExternalId { get; set; }

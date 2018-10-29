@@ -16,6 +16,8 @@ namespace Lykke.Service.LP3.Domain.Orders
 
         public decimal Volume { get; set; }
         
+        public decimal OriginalVolume { get; set; }
+        
         public TradeType TradeType { get; }
         
         public LimitOrderError Error { get; set; }
@@ -35,6 +37,7 @@ namespace Lykke.Service.LP3.Domain.Orders
             
             Price = price;
             Volume = volume;
+            OriginalVolume = volume;
             TradeType = tradeType;
             AssetPairId = assetPairId;
             Number = number;
@@ -60,7 +63,7 @@ namespace Lykke.Service.LP3.Domain.Orders
 
         private void RoundVolume(AssetPairInfo assetPairInfo)
         {
-            var originalVolume = Volume;
+            var unroundedVolume = Volume;
             Volume = Math.Round(Math.Abs(Volume), assetPairInfo.VolumeAccuracy);
 
             if (Volume < assetPairInfo.MinVolume)
@@ -68,7 +71,7 @@ namespace Lykke.Service.LP3.Domain.Orders
                 Error = LimitOrderError.TooSmallVolume;
                 ErrorMessage +=
                     $"Minimal volume for {assetPairInfo.AssetPairId} is {assetPairInfo.MinVolume}. " +
-                    $"Original volume: {originalVolume}, rounded volume: {Volume}. ";
+                    $"Unrounded volume: {unroundedVolume}, rounded volume: {Volume}. ";
             }
         }
     }

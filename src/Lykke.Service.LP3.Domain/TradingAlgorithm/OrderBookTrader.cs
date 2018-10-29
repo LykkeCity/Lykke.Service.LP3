@@ -251,8 +251,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {
             return executedOrder.TradeType == TradeType.Sell
-                ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
-                : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
+                ? new LimitOrder(SubtractDelta(executedOrder.Price), executedOrder.OriginalVolume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
+                : new LimitOrder(AddDelta(executedOrder.Price), executedOrder.OriginalVolume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
         }
     }
 }

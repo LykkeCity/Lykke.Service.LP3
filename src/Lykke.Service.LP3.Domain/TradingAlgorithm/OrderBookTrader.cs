@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -223,10 +223,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 yield return new LimitOrder(price, Volume, tradeType, AssetPairId, number);
             }
         }
-        
-        private decimal AddDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) + (double) Delta);
-        
-        private decimal SubtractDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) - (double) Delta);
+
+        //private decimal AddDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) + (double) Delta);
+        //private decimal SubtractDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) - (double) Delta);
+
+        private decimal AddDelta(decimal price) => price + Delta;
+        private decimal SubtractDelta(decimal price) => price - Delta;
 
         private void MarkOrdersIfDisabled(IEnumerable<LimitOrder> orders)
         {

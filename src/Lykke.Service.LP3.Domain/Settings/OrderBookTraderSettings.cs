@@ -13,5 +13,9 @@ namespace Lykke.Service.LP3.Domain.Settings
         public decimal Volume { get; set; }
         
         public int Count { get; set; }
+        
+        public int MinCountOrderInMarket { get; set; }
+        
+        public int AddedCountOrdersInMarket { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Service.LP3.Domain.Orders;
 using Lykke.Service.LP3.Domain.Settings;
 using MoreLinq;
@@ -30,12 +32,31 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 
         public decimal Inventory { get; private set; }
         public decimal OppositeInventory { get; private set; }
+        
+        public int MinCountOrderInMarket { get; private set; }
+        public int AddedCountOrdersInMarket { get; private set; }
+
+        private int MaxCountOrderInMarket => MinCountOrderInMarket + AddedCountOrdersInMarket;
 
         private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
         private bool _isEnabled;
 
-        public OrderBookTrader(OrderBookTraderSettings settings)
+        private LimitOrder CheapestSellOrder =>
+            _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).First();
+        private LimitOrder MostExpensiceSellOrder =>
+            _orders.Where(x => x.TradeType == TradeType.Sell).OrderByDescending(x => x.Price).First();
+        private LimitOrder CheapestBuyOrder =>
+            _orders.Where(x => x.TradeType == TradeType.Buy).OrderBy(x => x.Price).First();
+        private LimitOrder MostExpensiceBuyOrder =>
+            _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).First();
+
+        private readonly ILog _log;
+
+        public OrderBookTrader(OrderBookTraderSettings settings, ILogFactory logFactory)
         {
+            if(settings.MinCountOrderInMarket + settings.AddedCountOrdersInMarket > settings.Count)
+                throw new ArgumentException($"Inconsistent settings for trader: {nameof(settings.Count)} ({settings.Count}) should be more than {nameof(settings.MinCountOrderInMarket)} ({settings.MinCountOrderInMarket}) + {nameof(settings.AddedCountOrdersInMarket)} ({settings.AddedCountOrdersInMarket})");
+            
             AssetPairId = settings.AssetPairId;
             IsEnabled = settings.IsEnabled;
             InitialPrice = settings.InitialPrice;
@@ -43,11 +64,16 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Delta = settings.Delta;
             Volume = settings.Volume;
             Count = settings.Count;
+
+            MinCountOrderInMarket = settings.MinCountOrderInMarket;
+            AddedCountOrdersInMarket = settings.AddedCountOrdersInMarket;
+
+            _log = logFactory.CreateLog(this);
         }
         
         [UsedImplicitly] // used by Mapper
         public OrderBookTrader(string assetPairId, bool isEnabled, decimal initialPrice, decimal delta, 
-            decimal volume, int count, decimal inventory, decimal oppositeInventory) 
+            decimal volume, int count, decimal inventory, decimal oppositeInventory, ILogFactory logFactory) 
             : this(new OrderBookTraderSettings
                 {
                     AssetPairId = assetPairId,
@@ -56,7 +82,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     Volume = volume,
                     Count = count,
                     InitialPrice = initialPrice
-                })
+                },
+                logFactory)
         {
             Inventory = inventory;
             OppositeInventory = oppositeInventory;
@@ -74,20 +101,22 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             return _orders;
         }
 
-        public (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+        public (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders, IReadOnlyCollection<LimitOrder> toCancelOrders) 
             HandleTrades(IReadOnlyCollection<Trade> trades, decimal minVolume)
         {
             var addedOrders = new List<LimitOrder>();
             var removedOrders = new List<LimitOrder>();
+            var toCancelOrders = new List<LimitOrder>();
             
             foreach (var trade in trades)
             {
-                var (addedOrdersFromTrade, removedOrdersFromTrade) = HandleTrade(trade, minVolume);
+                var (addedOrdersFromTrade, removedOrdersFromTrade, toCancelOrdersFromTrade) = HandleTrade(trade, minVolume);
                 addedOrders.AddRange(addedOrdersFromTrade);
                 removedOrders.AddRange(removedOrdersFromTrade);
+                toCancelOrders.AddRange(toCancelOrdersFromTrade);
             }
 
-            return (addedOrders, removedOrders);
+            return (addedOrders, removedOrders, toCancelOrders);
         }
 
         public void UpdateSettings(OrderBookTraderSettings settings)
@@ -102,7 +131,9 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             
             Delta = settings.Delta;
             Count = settings.Count;
-            Volume = settings.Volume;    
+            Volume = settings.Volume;
+            MinCountOrderInMarket = settings.MinCountOrderInMarket;
+            AddedCountOrdersInMarket = settings.AddedCountOrdersInMarket;
         }
 
         public IReadOnlyCollection<LimitOrder> GetOrders()
@@ -141,7 +172,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             limitOrders.ForEach(x => _orders.AddLast(x));
         }
 
-        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders, IReadOnlyCollection<LimitOrder> toCancelOrders) 
             HandleTrade(Trade trade, decimal minVolume)
         {
             if (trade.Type == TradeType.None) throw new ArgumentException("Trade has None type", nameof(trade));
@@ -150,14 +181,15 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 trade.Type == TradeType.Sell
                     ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
                     : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
-                trade.Volume, minVolume);
+                trade.Type, trade.Volume, minVolume);
         }
         
-        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
-            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
+        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders, IReadOnlyCollection<LimitOrder> toCancelOrders) 
+            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, TradeType tradeType, decimal volume, decimal minVolume)
         {
             var addedOrders = new List<LimitOrder>();
             var removedOrders = new List<LimitOrder>();
+            var toCancelOrders = new List<LimitOrder>();
             
             foreach (var limitOrder in orders)
             {
@@ -166,11 +198,53 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     _orders.Remove(limitOrder);
                     removedOrders.Add(limitOrder);
                     
-                    var newOrder = CreateOppositeOrder(limitOrder);
-                    _orders.AddLast(newOrder);
-                    addedOrders.Add(newOrder);
                     
-                    if (limitOrder.TradeType == TradeType.Sell)
+                    var threshold = InitialPrice +
+                                    Delta * Count * (tradeType == TradeType.Sell ? 1m : -1m);
+
+                    var newOrder = CreateOppositeOrder(limitOrder);
+
+                    if (tradeType == TradeType.Buy && newOrder.Price >= threshold ||
+                        tradeType == TradeType.Sell && newOrder.Price <= threshold)
+                    {
+                        _orders.AddLast(newOrder);
+                        addedOrders.Add(newOrder);
+                    }
+
+                    if (_orders.Count(x => x.TradeType == tradeType) <= MinCountOrderInMarket)
+                    {
+                        var numOfOrdersToAdd =
+                            Math.Min(
+                                Convert.ToInt32(
+                                    (tradeType == TradeType.Sell
+                                        ? threshold - MostExpensiceSellOrder.Price
+                                        : threshold - CheapestBuyOrder.Price)
+                                    / Delta),
+                                AddedCountOrdersInMarket);
+                        
+                        CreateOrders(
+                                tradeType == TradeType.Buy
+                                ? CheapestBuyOrder.Price
+                                : MostExpensiceSellOrder.Price,
+                            tradeType,
+                            numOfOrdersToAdd)
+                            .ForEach(
+                                x =>
+                                {
+                                    _orders.AddLast(x);
+                                    addedOrders.Add(x);
+                                });
+
+                        for (int i = 0; i < numOfOrdersToAdd; i++)
+                        {
+                            var orderToRemove = tradeType == TradeType.Sell ? CheapestBuyOrder : MostExpensiceBuyOrder;
+
+                            _orders.Remove(orderToRemove);
+                            toCancelOrders.Add(orderToRemove);
+                        }
+                    }
+                    
+                    if (tradeType == TradeType.Sell)
                     {
                         Inventory -= limitOrder.Volume;
                         OppositeInventory += limitOrder.Volume * limitOrder.Price;
@@ -207,14 +281,19 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 }
             }
 
-            return (addedOrders, removedOrders);
+            if (volume > minVolume)
+            {
+                _log.WriteWarning(nameof(SpreadVolumeOnOrders), AssetPairId, $"Volume {volume} left for {tradeType.ToString()}");
+            }
+
+            return (addedOrders, removedOrders, toCancelOrders);
         }
         
-        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
+        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType, int? numOfOrders = default(int?))
         {
             decimal price = initialPrice;
             
-            for (int i = 0; i < Count; i++)
+            for (int i = 0; i < (numOfOrders ?? MaxCountOrderInMarket); i++)
             {
                 price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
 

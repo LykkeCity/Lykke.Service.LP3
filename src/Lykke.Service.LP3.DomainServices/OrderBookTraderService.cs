@@ -16,6 +16,7 @@ namespace Lykke.Service.LP3.DomainServices
     public class OrderBookTraderService : IOrderBookTraderService
     {
         private readonly IOrderBookTraderRepository _orderBookTraderRepository;
+        private readonly ILogFactory _logFactory;
         private readonly ILog _log;
 
         private Dictionary<string, OrderBookTrader> _orderBookTraders;
@@ -24,6 +25,7 @@ namespace Lykke.Service.LP3.DomainServices
             IOrderBookTraderRepository orderBookTraderRepository)
         {
             _orderBookTraderRepository = orderBookTraderRepository;
+            _logFactory = logFactory;
             _log = logFactory.CreateLog(this);
         }
         
@@ -56,7 +58,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             if (orderBookSettings == null) throw new ArgumentNullException(nameof(orderBookSettings));
             
-            var orderBook = new OrderBookTrader(orderBookSettings);
+            var orderBook = new OrderBookTrader(orderBookSettings, _logFactory);
             
             await _orderBookTraderRepository.AddAsync(orderBook);
             

@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Orders;
+using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
 using MoreLinq;
 using LimitOrder = Lykke.Service.LP3.Domain.Orders.LimitOrder;
@@ -19,9 +22,11 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             set
             {
                 _isEnabled = value;
-                MarkOrdersIfDisabled(_orders);
+                _limitOrderStore.MarkOrdersDisabled(!_isEnabled).GetAwaiter().GetResult();
             }
         }
+
+        private bool _isEnabled;
 
         public decimal Delta { get; private set; }
         public decimal Volume { get; private set; }
@@ -31,18 +36,21 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         public decimal Inventory { get; private set; }
         public decimal OppositeInventory { get; private set; }
 
-        private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
-        private bool _isEnabled;
+        private readonly ILimitOrderStore _limitOrderStore;
+        private readonly ILykkeExchange _lykkeExchange;
 
-        public OrderBookTrader(OrderBookTraderSettings settings)
+        public OrderBookTrader(OrderBookTraderSettings settings, ILimitOrderStore limitOrderStore, ILykkeExchange lykkeExchange)
         {
             AssetPairId = settings.AssetPairId;
-            IsEnabled = settings.IsEnabled;
+            _isEnabled = settings.IsEnabled;
             InitialPrice = settings.InitialPrice;
             
             Delta = settings.Delta;
             Volume = settings.Volume;
             Count = settings.Count;
+
+            _limitOrderStore = limitOrderStore;
+            _lykkeExchange = lykkeExchange;
         }
         
         [UsedImplicitly] // used by Mapper
@@ -56,25 +64,35 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     Volume = volume,
                     Count = count,
                     InitialPrice = initialPrice
-                })
+                }, null, null)
         {
             Inventory = inventory;
             OppositeInventory = oppositeInventory;
         }
         
-        public IReadOnlyCollection<LimitOrder> CreateOrders()
+        public async Task<IReadOnlyCollection<LimitOrder>> CreateOrders()
         {
-            _orders.Clear();
+            var orders = new List<LimitOrder>();
             
-            CreateOrders(InitialPrice, TradeType.Sell).ForEach(x => _orders.AddLast(x));
-            CreateOrders(InitialPrice, TradeType.Buy).ForEach(x => _orders.AddLast(x));
-            
-            MarkOrdersIfDisabled(_orders);
+            orders.AddRange(CreateOrders(InitialPrice, TradeType.Sell));
+            orders.AddRange(CreateOrders(InitialPrice, TradeType.Buy));
 
-            return _orders;
+            await _limitOrderStore.ClearAndAddOrders(orders);
+            await _limitOrderStore.MarkOrdersDisabled(!_isEnabled);
+
+            await _lykkeExchange.ApplyAsync(AssetPairId, orders);
+
+            foreach (var order in orders)
+            {
+                await _limitOrderStore.PersistOrder(order);
+            }
+            
+            orders.Clear();
+
+            return orders;
         }
 
-        public (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
+        public async Task<(IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders)>
             HandleTrades(IReadOnlyCollection<Trade> trades, decimal minVolume)
         {
             var addedOrders = new List<LimitOrder>();
@@ -82,18 +100,18 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             
             foreach (var trade in trades)
             {
-                var (addedOrdersFromTrade, removedOrdersFromTrade) = HandleTrade(trade, minVolume);
-                addedOrders.AddRange(addedOrdersFromTrade);
-                removedOrders.AddRange(removedOrdersFromTrade);
+                await HandleTrade(trade, minVolume);
+                //addedOrders.AddRange(addedOrdersFromTrade);
+                //removedOrders.AddRange(removedOrdersFromTrade);
             }
 
             return (addedOrders, removedOrders);
         }
 
-        public void UpdateSettings(OrderBookTraderSettings settings)
+        public async Task UpdateSettings(OrderBookTraderSettings settings)
         {
             IsEnabled = settings.IsEnabled;
-            MarkOrdersIfDisabled(_orders);
+            await _limitOrderStore.MarkOrdersDisabled(!_isEnabled);
 
             if (settings.InitialPrice != 0)
             {
@@ -105,70 +123,66 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Volume = settings.Volume;    
         }
 
-        public IReadOnlyCollection<LimitOrder> GetOrders()
+        public async Task<IReadOnlyCollection<LimitOrder>> GetOrders()
         {
-            return _orders;
+            return await Task.FromResult(new List<LimitOrder>().AsReadOnly());
         }
 
-        public void AddOrderManually([NotNull] LimitOrder limitOrder)
+        public async Task AddOrderManually([NotNull] LimitOrder limitOrder)
         {
             if (limitOrder == null) throw new ArgumentNullException(nameof(limitOrder));
 
             if (!string.Equals(limitOrder.AssetPairId, AssetPairId, StringComparison.InvariantCultureIgnoreCase))
                 throw new ArgumentException("LimitOrder is for another AssetPair");
             
-            _orders.AddLast(limitOrder);
-            
-            MarkOrdersIfDisabled(_orders);
+            await _limitOrderStore.AddSingleOrder(limitOrder);
+
+            await _limitOrderStore.MarkOrdersDisabled(!_isEnabled);
         }
 
-        public LimitOrder CancelOrder(Guid orderId)
+        public async Task<LimitOrder> CancelOrder(Guid orderId)
         {
-            var order = _orders.SingleOrDefault(x => x.Id == orderId);
-            _orders.Remove(order);
-            return order;
+            return await _limitOrderStore.RemoveSingleOrder(orderId);
         }
 
-        public void Clear()
+        public Task Clear()
         {
-            _orders.Clear();
+            return _limitOrderStore.Clear();
         }
 
-        public void RestoreOrders(IEnumerable<LimitOrder> limitOrders)
+        public Task RestoreOrders(IEnumerable<LimitOrder> limitOrders)
         {
-            _orders.Clear();
-            
-            limitOrders.ForEach(x => _orders.AddLast(x));
+            return _limitOrderStore.ClearAndAddOrders(limitOrders);
         }
 
-        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
-            HandleTrade(Trade trade, decimal minVolume)
+        private async Task HandleTrade(Trade trade, decimal minVolume)
         {
             if (trade.Type == TradeType.None) throw new ArgumentException("Trade has None type", nameof(trade));
 
-            return SpreadVolumeOnOrders(
+            await SpreadVolumeOnOrders(
                 trade.Type == TradeType.Sell
-                    ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
-                    : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
+                    ? (await _limitOrderStore.GetOrders(TradeType.Sell)).OrderBy(x => x.Price)
+                    : (await _limitOrderStore.GetOrders(TradeType.Buy)).OrderByDescending(x => x.Price), 
                 trade.Volume, minVolume);
         }
         
-        private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
-            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
+        private async Task SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
         {
-            var addedOrders = new List<LimitOrder>();
-            var removedOrders = new List<LimitOrder>();
-            
             foreach (var limitOrder in orders)
             {
                 if (limitOrder.Volume <= volume || limitOrder.Volume - volume < minVolume)
                 {
-                    _orders.Remove(limitOrder);
-                    removedOrders.Add(limitOrder);
+                    await _limitOrderStore.RemoveSingleOrder(limitOrder.Id);
+                    //todo: mark order to make sure it's removed from ME later
+                    await _lykkeExchange.CancelLimitOrderAsync(limitOrder.Id.ToString());
                     
                     var newOrder = CreateOppositeOrder(limitOrder);
-                    _orders.AddLast(newOrder);
-                    addedOrders.Add(newOrder);
+
+                    await _limitOrderStore.AddSingleOrder(newOrder);
+
+                    await _lykkeExchange.PlaceLimitOrderAsync(newOrder);
+
+                    await _limitOrderStore.PersistOrder(newOrder);
                     
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
@@ -191,6 +205,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 else
                 {
                     limitOrder.Volume -= volume;
+
+                    await _limitOrderStore.PersistOrder(limitOrder);
                     
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
@@ -206,8 +222,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     break;
                 }
             }
-
-            return (addedOrders, removedOrders);
         }
         
         private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
@@ -229,26 +243,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 
         private decimal AddDelta(decimal price) => price + Delta;
         private decimal SubtractDelta(decimal price) => price - Delta;
-
-        private void MarkOrdersIfDisabled(IEnumerable<LimitOrder> orders)
-        {
-            if (!IsEnabled)
-            {
-                orders.ForEach(x =>
-                {
-                    x.Error = LimitOrderError.OrderBookIsDisabled;
-                    x.ErrorMessage = "Order book is disabled";
-                });
-            }
-            else
-            {
-                orders.Where(x => x.Error == LimitOrderError.OrderBookIsDisabled).ForEach(x =>
-                {
-                    x.Error = LimitOrderError.None;
-                    x.ErrorMessage = null;
-                });
-            }
-        }
         
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {

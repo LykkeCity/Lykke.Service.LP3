@@ -56,6 +56,8 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
 
                 limitOrder.ExternalId = multiOrderItem.Id;
             }
+            
+            Console.WriteLine("________________" + multiOrderItems.ToJson());
 
             var multiLimitOrder = new MultiLimitOrderModel
             {

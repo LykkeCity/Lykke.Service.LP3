@@ -22,7 +22,7 @@ namespace Lykke.Service.LP3.Tests
 
             var minVolume = 1m;
                 
-            var trader = new OrderBookTrader(settings);
+            var trader = new OrderBookTrader(settings, null, null);
 
             var orders = trader.CreateOrders();
 
@@ -35,7 +35,7 @@ namespace Lykke.Service.LP3.Tests
                     Price = 5.2m,
                     Volume = 8
                 }
-            }, minVolume);
+            }, minVolume).GetAwaiter().GetResult();
             
             Assert.Empty(removedOrders);
             Assert.Empty(addedOrders);
@@ -56,7 +56,7 @@ namespace Lykke.Service.LP3.Tests
 
             var minVolume = 3m;
                 
-            var trader = new OrderBookTrader(settings);
+            var trader = new OrderBookTrader(settings, null, null);
 
             var orders = trader.CreateOrders();
 
@@ -69,7 +69,7 @@ namespace Lykke.Service.LP3.Tests
                     Price = 5.2m,
                     Volume = 8
                 }
-            }, minVolume);
+            }, minVolume).GetAwaiter().GetResult();
             
             Assert.Equal(1, removedOrders.Count);
             Assert.Equal(1, addedOrders.Count);

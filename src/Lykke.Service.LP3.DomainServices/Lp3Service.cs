@@ -77,7 +77,7 @@ namespace Lykke.Service.LP3.DomainServices
                         return;
                     }
                     
-                    var (addedOrders, removedOrders) = trader.HandleTrades(trades, assetPairInfo.MinVolume);
+                    var (addedOrders, removedOrders) = await trader.HandleTrades(trades, assetPairInfo.MinVolume);
 
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
                     
@@ -86,7 +86,7 @@ namespace Lykke.Service.LP3.DomainServices
                         await _limitOrderService.DeleteAsync(removedOrder.AssetPairId, removedOrder.Id);
                     }
 
-                    var allCurrentOrders = trader.GetOrders();
+                    var allCurrentOrders = await trader.GetOrders();
 
                     await _balanceService.UpdateBalancesAsync();
                     
@@ -105,12 +105,16 @@ namespace Lykke.Service.LP3.DomainServices
 
         public async Task<IReadOnlyCollection<LimitOrder>> GetAllOrdersAsync()
         {
-            return (await _orderBookTraderService.GetOrderBookTradersAsync()).SelectMany(x => x.GetOrders()).ToList();
+            var tasks = (await _orderBookTraderService.GetOrderBookTradersAsync()).Select(x => x.GetOrders());
+
+            await Task.WhenAll(tasks);
+            
+            return tasks.SelectMany(x => x.Result).ToList();
         }
 
         public async Task<IReadOnlyCollection<LimitOrder>> GetOrdersForAssetAsync(string assetPairId)
         {
-            return (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.GetOrders() ?? Array.Empty<LimitOrder>();
+            return await (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.GetOrders() ?? Array.Empty<LimitOrder>();
         }
 
         public async Task UpdateOrderBookTraderSettingsAsync(OrderBookTraderSettings orderBookTraderSettings)
@@ -120,7 +124,7 @@ namespace Lykke.Service.LP3.DomainServices
                 await _orderBookTraderService.UpdateOrderBookTraderSettingsAsync(orderBookTraderSettings);
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
                 await _limitOrderService.ClearAsync(trader.AssetPairId);
-                await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders());    
+                await ApplyOrdersAsync(trader.AssetPairId, await trader.CreateOrders());    
             });
         }
 
@@ -130,7 +134,7 @@ namespace Lykke.Service.LP3.DomainServices
                 {
                     await _orderBookTraderService.AddOrderBookTraderAsync(orderBookTraderSettings);
                     var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
-                    await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders());
+                    await ApplyOrdersAsync(trader.AssetPairId, await trader.CreateOrders());
                 });
         }
 
@@ -156,7 +160,7 @@ namespace Lykke.Service.LP3.DomainServices
                     return;
                 }
                 
-                await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders());
+                await ApplyOrdersAsync(trader.AssetPairId, await trader.GetOrders());
             });
         }        
 
@@ -174,7 +178,7 @@ namespace Lykke.Service.LP3.DomainServices
 
                 trader.AddOrderManually(limitOrder);
 
-                await ApplySingleOrderAsync(limitOrder, trader.GetOrders());
+                await ApplySingleOrderAsync(limitOrder, await trader.GetOrders());
                 
                 await _limitOrderService.AddAsync(limitOrder);
             });
@@ -184,7 +188,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await SynchronizeAsync(async () =>
             {
-                var order = (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.CancelOrder(orderId);
+                var order = await (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.CancelOrder(orderId);
                 if (order != null)
                 {
                     await ApplyCancelSingleOrderAsync(order);
@@ -202,7 +206,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await SynchronizeAsync(async () =>
             {
-                (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.Clear();
+                await (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.Clear();
                 await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
                 await _limitOrderService.ClearAsync(assetPairId);
             });
@@ -220,12 +224,12 @@ namespace Lykke.Service.LP3.DomainServices
                     return null;
                 }
                 
-                var order = trader.GetOrders().SingleOrDefault(x => x.Id == orderId);
+                var order = (await trader.GetOrders()).SingleOrDefault(x => x.Id == orderId);
 
                 if (order != null)
                 {
                     await ApplyCancelSingleOrderAsync(order);
-                    await ApplySingleOrderAsync(order, trader.GetOrders());
+                    await ApplySingleOrderAsync(order, await trader.GetOrders());
                     await _limitOrderService.UpdateAsync(order);
                 }
                 else
@@ -250,7 +254,7 @@ namespace Lykke.Service.LP3.DomainServices
 
                     trader.IsEnabled = false;
                     await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
-                    await _limitOrderService.AddOrUpdateBatchAsync(trader.GetOrders());
+                    await _limitOrderService.AddOrUpdateBatchAsync(await trader.GetOrders());
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
                 });
         }
@@ -267,7 +271,7 @@ namespace Lykke.Service.LP3.DomainServices
                 }
 
                 trader.IsEnabled = true;
-                await ApplyOrdersAsync(assetPairId, trader.GetOrders());
+                await ApplyOrdersAsync(assetPairId, await trader.GetOrders());
                 await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
             });
         }
@@ -292,7 +296,7 @@ namespace Lykke.Service.LP3.DomainServices
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId);
                 if (trader != null)
                 {
-                    await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders());
+                    await ApplyOrdersAsync(trader.AssetPairId, await trader.GetOrders());
                 }
             }).GetAwaiter().GetResult();
         }
@@ -305,7 +309,7 @@ namespace Lykke.Service.LP3.DomainServices
             foreach (var trader in traders)
             {
                 var ordersForTrader = orders.Where(x => x.AssetPairId == trader.AssetPairId).ToList();
-                trader.RestoreOrders(ordersForTrader);
+                await trader.RestoreOrders(ordersForTrader);
                 _log.Info($"There were {ordersForTrader.Count} orders restored for trader {trader.AssetPairId}");
             }
         }
@@ -425,7 +429,7 @@ namespace Lykke.Service.LP3.DomainServices
                 {
                     var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
                     
-                    await _lykkeExchange.ApplyAsync(assetPairId, ordersToPlace);
+                    //await _lykkeExchange.ApplyAsync(assetPairId, ordersToPlace);
                     await _limitOrderService.AddOrUpdateBatchAsync(orders);
                     
 

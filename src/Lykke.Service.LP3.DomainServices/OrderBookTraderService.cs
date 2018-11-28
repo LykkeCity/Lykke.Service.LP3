@@ -6,6 +6,7 @@ using Common;
 using Common.Log;
 using JetBrains.Annotations;
 using Lykke.Common.Log;
+using Lykke.Service.LP3.Domain.Exchanges;
 using Lykke.Service.LP3.Domain.Repositories;
 using Lykke.Service.LP3.Domain.Services;
 using Lykke.Service.LP3.Domain.Settings;
@@ -17,14 +18,17 @@ namespace Lykke.Service.LP3.DomainServices
     {
         private readonly IOrderBookTraderRepository _orderBookTraderRepository;
         private readonly ILog _log;
+        private readonly ILykkeExchange _lykkeExchange;
 
-        private Dictionary<string, OrderBookTrader> _orderBookTraders;
+        private Dictionary<string, OrderBookTrader> _orderBookTraders = new Dictionary<string, OrderBookTrader>();
 
         public OrderBookTraderService(ILogFactory logFactory,
-            IOrderBookTraderRepository orderBookTraderRepository)
+            IOrderBookTraderRepository orderBookTraderRepository,
+            ILykkeExchange lykkeExchange)
         {
             _orderBookTraderRepository = orderBookTraderRepository;
             _log = logFactory.CreateLog(this);
+            _lykkeExchange = lykkeExchange;
         }
         
 
@@ -56,7 +60,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             if (orderBookSettings == null) throw new ArgumentNullException(nameof(orderBookSettings));
             
-            var orderBook = new OrderBookTrader(orderBookSettings);
+            var orderBook = new OrderBookTrader(orderBookSettings, new LimitOrderStore(), _lykkeExchange);
             
             await _orderBookTraderRepository.AddAsync(orderBook);
             

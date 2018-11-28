@@ -80,15 +80,9 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             await _limitOrderStore.ClearAndAddOrders(orders);
             await _limitOrderStore.MarkOrdersDisabled(!_isEnabled);
 
-            await _lykkeExchange.ApplyAsync(AssetPairId, orders);
+            await ReplaceExchangeOrderBook(orders);
 
-            foreach (var order in orders)
-            {
-                await _limitOrderStore.PersistOrder(order);
-            }
-            
             orders.Clear();
-
             return orders;
         }
 
@@ -136,7 +130,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 throw new ArgumentException("LimitOrder is for another AssetPair");
             
             await _limitOrderStore.AddSingleOrder(limitOrder);
-
             await _limitOrderStore.MarkOrdersDisabled(!_isEnabled);
         }
 
@@ -173,17 +166,15 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 if (limitOrder.Volume <= volume || limitOrder.Volume - volume < minVolume)
                 {
                     await _limitOrderStore.RemoveSingleOrder(limitOrder.Id);
-                    //todo: mark order to make sure it's removed from ME later
-                    await _lykkeExchange.CancelLimitOrderAsync(limitOrder.Id.ToString());
-                    
+                    await CancelExchangeLimitOrder(limitOrder);
+
                     var newOrder = CreateOppositeOrder(limitOrder);
 
-                    await _limitOrderStore.AddSingleOrder(newOrder);
+                    await _limitOrderStore.AddSingleOrder(limitOrder);
+                    await _limitOrderStore.MarkOrdersDisabled(!_isEnabled);
 
-                    await _lykkeExchange.PlaceLimitOrderAsync(newOrder);
+                    await CreateExchangeLimitOrder(newOrder);
 
-                    await _limitOrderStore.PersistOrder(newOrder);
-                    
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= limitOrder.Volume;
@@ -207,6 +198,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     limitOrder.Volume -= volume;
 
                     await _limitOrderStore.PersistOrder(limitOrder);
+                    await ReplaceExchangeLimitOrder(limitOrder);
                     
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
@@ -223,7 +215,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 }
             }
         }
-        
+
         private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
         {
             decimal price = initialPrice;
@@ -250,5 +242,46 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
                 : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
         }
+
+        private async Task ReplaceExchangeOrderBook(IReadOnlyCollection<LimitOrder> orders)
+        {
+            orders.ForEach(e => e.InMarket = false);
+
+            var list = new List<LimitOrder>();
+
+            list.AddRange(
+                orders.Where(e => e.TradeType == TradeType.Sell)
+                    .OrderBy(e => e.Price)
+                    .Take(10)); //todo: add settings CountInMarket
+
+            list.AddRange(
+                orders.Where(e => e.TradeType == TradeType.Buy)
+                    .OrderByDescending(e => e.Price)
+                    .Take(10));
+
+            list.ForEach(e => e.InMarket = true);
+
+            await _lykkeExchange.ApplyAsync(AssetPairId, list);
+        }
+
+        private Task CancelExchangeLimitOrder(LimitOrder limitOrder)
+        {
+            //await _lykkeExchange.CancelLimitOrderAsync(limitOrder.Id.ToString());
+            return Task.CompletedTask;
+        }
+
+        private async Task ReplaceExchangeLimitOrder(LimitOrder limitOrder)
+        {
+            //await _limitOrderStore.PersistOrder(limitOrder);
+            var orders = await _limitOrderStore.GetOrders();
+            await ReplaceExchangeOrderBook(orders);
+        }
+
+        private async Task CreateExchangeLimitOrder(LimitOrder newOrder)
+        {
+            var orders = await _limitOrderStore.GetOrders();
+            await ReplaceExchangeOrderBook(orders);
+        }
+
     }
 }

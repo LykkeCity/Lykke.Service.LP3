@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Common;
 using Lykke.Service.LP3.Domain.Assets;
 
@@ -23,7 +23,9 @@ namespace Lykke.Service.LP3.Domain.Orders
         public string ErrorMessage { get; set; }
         
         public string AssetPairId { get; set; }
-        
+
+        public bool InMarket { get; set; }
+
         public LimitOrder(decimal price, decimal volume, TradeType tradeType, string assetPairId, decimal number)
             : this(Guid.NewGuid(), price, volume, tradeType, assetPairId, number)
         {

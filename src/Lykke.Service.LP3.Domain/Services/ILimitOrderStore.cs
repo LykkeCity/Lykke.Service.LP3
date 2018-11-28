@@ -9,7 +9,10 @@ namespace Lykke.Service.LP3.Domain.Services
     {
         Task MarkOrdersDisabled(bool isDisabled);
         Task ClearAndAddOrders(IEnumerable<LimitOrder> orders);
+
+        //todo: remove task here
         Task<IReadOnlyCollection<LimitOrder>> GetOrders(TradeType? tradeType = default(TradeType?));
+
         Task AddSingleOrder(LimitOrder limitOrder);
         Task<LimitOrder> RemoveSingleOrder(Guid id);
         Task Clear();

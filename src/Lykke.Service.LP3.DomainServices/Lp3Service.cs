@@ -389,7 +389,13 @@ namespace Lykke.Service.LP3.DomainServices
             try
             {
                 var assetPairInfo = _assetsService.GetAssetPairInfo(assetPairId);
-                foreach (var limitOrder in orders) limitOrder.Round(assetPairInfo);
+                
+                foreach (var limitOrder in orders)
+                {
+                    limitOrder.Round(assetPairInfo);
+                    limitOrder.Error = LimitOrderError.None;
+                    limitOrder.ErrorMessage = string.Empty;
+                }
 
                 await ValidateBalancesAsync(orders, assetPairInfo);
                 
@@ -406,22 +412,12 @@ namespace Lykke.Service.LP3.DomainServices
                         e.Error = LimitOrderError.NotInMarket;
                         e.ErrorMessage = "Order not in market";
                     });
-                    orders.Where(e => e.TradeType == TradeType.Buy).OrderByDescending(e => e.Price).Take(countInMarket).ForEach(e =>
-                    {
-                        e.Error = LimitOrderError.None;
-                        e.ErrorMessage = string.Empty;
-                    });
                     orders.Where(e => e.TradeType == TradeType.Sell).OrderBy(e => e.Price).Skip(countInMarket).ForEach(e =>
                     {
                         e.Error = LimitOrderError.NotInMarket;
                         e.ErrorMessage = "Order not in market";
                     });
-                    orders.Where(e => e.TradeType == TradeType.Sell).OrderBy(e => e.Price).Take(countInMarket).ForEach(e =>
-                    {
-                        e.Error = LimitOrderError.None;
-                        e.ErrorMessage = string.Empty;
-                    });
-
+                    
                     var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
                     
                     await _lykkeExchange.ApplyAsync(assetPairId, ordersToPlace);

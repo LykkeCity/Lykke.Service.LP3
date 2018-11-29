@@ -14,6 +14,8 @@ namespace Lykke.Service.LP3.Client.Models
         
         public int Count { get; set; }
         
+        public int CountInMarket { get; set; }
+        
         public decimal Inventory { get; set; }
         
         public decimal OppositeInventory { get; set; }

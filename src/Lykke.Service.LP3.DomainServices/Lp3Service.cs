@@ -86,7 +86,7 @@ namespace Lykke.Service.LP3.DomainServices
 
                     await _balanceService.UpdateBalancesAsync();
 
-                    await ApplyOrdersAsync(assetPairId, allCurrentOrders);                    
+                    await ApplyOrdersAsync(assetPairId, allCurrentOrders, trader.CountInMarket);                    
                 }
                 catch (Exception e)
                 {
@@ -112,7 +112,7 @@ namespace Lykke.Service.LP3.DomainServices
                 await _orderBookTraderService.UpdateOrderBookTraderSettingsAsync(orderBookTraderSettings);
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
                 await _limitOrderService.ClearAsync(trader.AssetPairId);
-                await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders());    
+                await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders(), trader.CountInMarket);    
             });
         }
 
@@ -123,7 +123,7 @@ namespace Lykke.Service.LP3.DomainServices
                     await _orderBookTraderService.AddOrderBookTraderAsync(orderBookTraderSettings);
                     var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
                     var orders = trader.CreateOrders();
-                    await ApplyOrdersAsync(trader.AssetPairId, orders);
+                    await ApplyOrdersAsync(trader.AssetPairId, orders, trader.CountInMarket);
                     await _limitOrderService.AddOrUpdateBatchAsync(orders);
                 });
         }
@@ -152,7 +152,7 @@ namespace Lykke.Service.LP3.DomainServices
 
                 await _limitOrderService.ClearAsync(assetPairId);
                 var orders = trader.GetOrders();
-                await ApplyOrdersAsync(trader.AssetPairId, orders);
+                await ApplyOrdersAsync(trader.AssetPairId, orders, trader.CountInMarket);
                 await _limitOrderService.AddOrUpdateBatchAsync(orders);
             });
         }        
@@ -172,7 +172,7 @@ namespace Lykke.Service.LP3.DomainServices
                 trader.AddOrderManually(limitOrder);
                 
                 //await ApplySingleOrderAsync(limitOrder, trader.GetOrders());
-                await ApplyOrdersAsync(limitOrder.AssetPairId, trader.GetOrders());
+                await ApplyOrdersAsync(limitOrder.AssetPairId, trader.GetOrders(), trader.CountInMarket);
 
                 await _limitOrderService.AddAsync(limitOrder);
             });
@@ -261,7 +261,7 @@ namespace Lykke.Service.LP3.DomainServices
                 }
 
                 trader.IsEnabled = true;
-                await ApplyOrdersAsync(assetPairId, trader.GetOrders());
+                await ApplyOrdersAsync(assetPairId, trader.GetOrders(), trader.CountInMarket);
                 await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
             });
         }
@@ -284,7 +284,7 @@ namespace Lykke.Service.LP3.DomainServices
                 _log.Info($"Retrying placing order for {assetPairId}");
 
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId);
-                if (trader != null) await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders());
+                if (trader != null) await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders(), trader.CountInMarket);
             }).GetAwaiter().GetResult();
         }
 
@@ -384,7 +384,7 @@ namespace Lykke.Service.LP3.DomainServices
             }
         }
         
-        private async Task ApplyOrdersAsync(string assetPairId, IReadOnlyCollection<LimitOrder> orders)
+        private async Task ApplyOrdersAsync(string assetPairId, IReadOnlyCollection<LimitOrder> orders, int countInMarket)
         {
             try
             {
@@ -401,8 +401,6 @@ namespace Lykke.Service.LP3.DomainServices
                 
                 try
                 {
-                    var countInMarket = 3;
-
                     orders.Where(e => e.TradeType == TradeType.Buy).OrderByDescending(e => e.Price).Skip(countInMarket).ForEach(e =>
                     {
                         e.Error = LimitOrderError.NotInMarket;

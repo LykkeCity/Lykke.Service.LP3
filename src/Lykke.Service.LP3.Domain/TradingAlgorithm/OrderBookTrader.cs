@@ -155,11 +155,11 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 trade.Type == TradeType.Sell
                     ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
                     : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
-                trade.Volume, minVolume);
+                trade.Volume, trade.Price, minVolume);
         }
         
         private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
-            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
+            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal tradePrice, decimal minVolume)
         {
             var addedOrders = new List<LimitOrder>();
             var removedOrders = new List<LimitOrder>();
@@ -178,12 +178,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= limitOrder.Volume;
-                        OppositeInventory += limitOrder.Volume * limitOrder.Price;
+                        OppositeInventory += limitOrder.Volume * tradePrice;
                     }
                     else
                     {
                         Inventory += limitOrder.Volume;
-                        OppositeInventory -= limitOrder.Volume * limitOrder.Price;
+                        OppositeInventory -= limitOrder.Volume * tradePrice;
                     }
 
                     volume -= limitOrder.Volume;
@@ -200,12 +200,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= volume;
-                        OppositeInventory += volume * limitOrder.Price;
+                        OppositeInventory += volume * tradePrice;
                     }
                     else
                     {
                         Inventory += volume;
-                        OppositeInventory -= volume * limitOrder.Price;
+                        OppositeInventory -= volume * tradePrice;
                     }
 
                     break;

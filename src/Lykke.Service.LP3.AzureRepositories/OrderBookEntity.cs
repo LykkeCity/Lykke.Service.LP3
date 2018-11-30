@@ -23,6 +23,7 @@ namespace Lykke.Service.LP3.AzureRepositories
 
         private decimal _volume;
         private int _count;
+        private int _countInMarket;
         private decimal _delta;
         
         private decimal _initialPrice;
@@ -60,6 +61,15 @@ namespace Lykke.Service.LP3.AzureRepositories
             }
         }
 
+        public int CountInMarket
+        {
+            get => _countInMarket;
+            set
+            {
+                _countInMarket = value;
+                MarkValueTypePropertyAsDirty(nameof(CountInMarket));
+            }
+        }
         
         public decimal Delta
         {

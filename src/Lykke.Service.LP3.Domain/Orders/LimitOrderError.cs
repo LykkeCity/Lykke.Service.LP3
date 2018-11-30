@@ -1,4 +1,4 @@
-namespace Lykke.Service.LP3.Domain.Orders
+﻿namespace Lykke.Service.LP3.Domain.Orders
 {
     public enum LimitOrderError
     {
@@ -28,6 +28,8 @@ namespace Lykke.Service.LP3.Domain.Orders
 
         TooSmallVolume = 418,
 
-        InvalidPrice = 420
+        InvalidPrice = 420,
+
+        NotInMarket = 10001
     }
 }

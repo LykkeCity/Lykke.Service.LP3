@@ -30,6 +30,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 
         public decimal Inventory { get; private set; }
         public decimal OppositeInventory { get; private set; }
+        
+        public int CountInMarket { get; private set; }
 
         private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
         private bool _isEnabled;
@@ -43,11 +45,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Delta = settings.Delta;
             Volume = settings.Volume;
             Count = settings.Count;
+            CountInMarket = settings.CountInMarket;
         }
         
         [UsedImplicitly] // used by Mapper
         public OrderBookTrader(string assetPairId, bool isEnabled, decimal initialPrice, decimal delta, 
-            decimal volume, int count, decimal inventory, decimal oppositeInventory) 
+            decimal volume, int count, int countInMarket, decimal inventory, decimal oppositeInventory) 
             : this(new OrderBookTraderSettings
                 {
                     AssetPairId = assetPairId,
@@ -55,7 +58,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     Delta = delta,
                     Volume = volume,
                     Count = count,
-                    InitialPrice = initialPrice
+                    InitialPrice = initialPrice,
+                    CountInMarket = countInMarket
                 })
         {
             Inventory = inventory;
@@ -102,7 +106,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             
             Delta = settings.Delta;
             Count = settings.Count;
-            Volume = settings.Volume;    
+            Volume = settings.Volume;
+            CountInMarket = settings.CountInMarket;
         }
 
         public IReadOnlyCollection<LimitOrder> GetOrders()
@@ -150,11 +155,11 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 trade.Type == TradeType.Sell
                     ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
                     : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
-                trade.Volume, minVolume);
+                trade.Volume, trade.Price, minVolume);
         }
         
         private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
-            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal minVolume)
+            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal tradePrice, decimal minVolume)
         {
             var addedOrders = new List<LimitOrder>();
             var removedOrders = new List<LimitOrder>();
@@ -173,12 +178,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= limitOrder.Volume;
-                        OppositeInventory += limitOrder.Volume * limitOrder.Price;
+                        OppositeInventory += limitOrder.Volume * tradePrice;
                     }
                     else
                     {
                         Inventory += limitOrder.Volume;
-                        OppositeInventory -= limitOrder.Volume * limitOrder.Price;
+                        OppositeInventory -= limitOrder.Volume * tradePrice;
                     }
 
                     volume -= limitOrder.Volume;
@@ -195,12 +200,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     if (limitOrder.TradeType == TradeType.Sell)
                     {
                         Inventory -= volume;
-                        OppositeInventory += volume * limitOrder.Price;
+                        OppositeInventory += volume * tradePrice;
                     }
                     else
                     {
                         Inventory += volume;
-                        OppositeInventory -= volume * limitOrder.Price;
+                        OppositeInventory -= volume * tradePrice;
                     }
 
                     break;

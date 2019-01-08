@@ -1,4 +1,4 @@
-namespace Lykke.Service.LP3.Domain.Settings
+﻿namespace Lykke.Service.LP3.Domain.Settings
 {
     public class OrderBookTraderSettings
     {
@@ -15,5 +15,9 @@ namespace Lykke.Service.LP3.Domain.Settings
         public int Count { get; set; }
         
         public int CountInMarket { get; set; }
+
+        public bool IsReverseBook { get; set; }
+
+        public int VolumeAccuracy { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-namespace Lykke.Service.LP3.Client.Models
+﻿namespace Lykke.Service.LP3.Client.Models
 {
     public class OrderBookTraderModel
     {
@@ -15,7 +15,11 @@ namespace Lykke.Service.LP3.Client.Models
         public int Count { get; set; }
         
         public int CountInMarket { get; set; }
-        
+
+        public bool IsReverseBook { get; set; }
+
+        public int VolumeAccuracy { get; set; }
+
         public decimal Inventory { get; set; }
         
         public decimal OppositeInventory { get; set; }

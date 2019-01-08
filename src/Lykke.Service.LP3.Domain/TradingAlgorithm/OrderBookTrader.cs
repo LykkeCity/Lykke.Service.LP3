@@ -32,6 +32,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         public decimal OppositeInventory { get; private set; }
         
         public int CountInMarket { get; private set; }
+        public bool IsReverseBook { get; private set; }
+        public int VolumeAccuracy { get; private set; }
 
         private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
         private bool _isEnabled;
@@ -46,11 +48,13 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Volume = settings.Volume;
             Count = settings.Count;
             CountInMarket = settings.CountInMarket;
+            IsReverseBook = settings.IsReverseBook;
+            VolumeAccuracy = settings.VolumeAccuracy;
         }
         
         [UsedImplicitly] // used by Mapper
         public OrderBookTrader(string assetPairId, bool isEnabled, decimal initialPrice, decimal delta, 
-            decimal volume, int count, int countInMarket, decimal inventory, decimal oppositeInventory) 
+            decimal volume, int count, int countInMarket, bool IsReverseBook, int volumeAccuracy, decimal inventory, decimal oppositeInventory) 
             : this(new OrderBookTraderSettings
                 {
                     AssetPairId = assetPairId,
@@ -59,7 +63,9 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     Volume = volume,
                     Count = count,
                     InitialPrice = initialPrice,
-                    CountInMarket = countInMarket
+                    CountInMarket = countInMarket,
+                    IsReverseBook = IsReverseBook,
+                    VolumeAccuracy = volumeAccuracy
                 })
         {
             Inventory = inventory;
@@ -108,6 +114,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Count = settings.Count;
             Volume = settings.Volume;
             CountInMarket = settings.CountInMarket;
+            IsReverseBook = settings.IsReverseBook;
         }
 
         public IReadOnlyCollection<LimitOrder> GetOrders()
@@ -115,7 +122,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             return _orders;
         }
 
-        public void AddOrderManually([NotNull] LimitOrder limitOrder)
+        public LimitOrder AddOrderManually([NotNull] LimitOrder limitOrder)
         {
             if (limitOrder == null) throw new ArgumentNullException(nameof(limitOrder));
 
@@ -125,6 +132,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             _orders.AddLast(limitOrder);
             
             MarkOrdersIfDisabled(_orders);
+
+            return limitOrder;
         }
 
         public LimitOrder CancelOrder(Guid orderId)
@@ -215,20 +224,6 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             return (addedOrders, removedOrders);
         }
         
-        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
-        {
-            decimal price = initialPrice;
-            
-            for (int i = 0; i < Count; i++)
-            {
-                price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
-
-                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
-
-                yield return new LimitOrder(price, Volume, tradeType, AssetPairId, number);
-            }
-        }
-
         //private decimal AddDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) + (double) Delta);
         //private decimal SubtractDelta(decimal price) => (decimal) Math.Exp(Math.Log((double) price) - (double) Delta);
 
@@ -254,12 +249,52 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 });
             }
         }
-        
+
+        private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
+        {
+            var orderList = new List<LimitOrder>();
+
+            decimal price = initialPrice;
+
+            for (int i = 0; i < Count; i++)
+            {
+                price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
+
+                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
+
+                var volume = CalculateVolume(price);
+
+                var order = new LimitOrder(price, volume, tradeType, AssetPairId, number);
+                orderList.Add(order);
+            }
+
+            return orderList;
+        }
+
         private LimitOrder CreateOppositeOrder(LimitOrder executedOrder)
         {
-            return executedOrder.TradeType == TradeType.Sell
-                ? new LimitOrder(SubtractDelta(executedOrder.Price), Volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1)
-                : new LimitOrder(AddDelta(executedOrder.Price), Volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
+            LimitOrder order;
+
+            if (executedOrder.TradeType == TradeType.Sell)
+            {
+                var price = SubtractDelta(executedOrder.Price);
+                var volume = CalculateVolume(price);
+                order = new LimitOrder(price, volume, TradeType.Buy, AssetPairId, executedOrder.Number - 1);
+            }
+            else
+            {
+                var price = AddDelta(executedOrder.Price);
+                var volume = CalculateVolume(price);
+                order = new LimitOrder(price, volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
+            }
+
+            return order;
+        }
+
+        private decimal CalculateVolume(decimal price)
+        {
+            var volume = IsReverseBook ? Math.Round(Volume / price, VolumeAccuracy) : Volume;
+            return volume;
         }
     }
 }

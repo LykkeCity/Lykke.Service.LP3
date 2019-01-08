@@ -16,7 +16,7 @@
         
         public int CountInMarket { get; set; }
 
-        public bool IsReverceBook { get; set; }
+        public bool IsReverseBook { get; set; }
 
         public int VolumeAccuracy { get; set; }
 

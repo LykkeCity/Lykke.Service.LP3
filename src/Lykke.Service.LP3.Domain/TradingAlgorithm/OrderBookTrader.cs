@@ -32,7 +32,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         public decimal OppositeInventory { get; private set; }
         
         public int CountInMarket { get; private set; }
-        public bool IsReverceBook { get; private set; }
+        public bool IsReverseBook { get; private set; }
         public int VolumeAccuracy { get; private set; }
 
         private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
@@ -48,13 +48,13 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Volume = settings.Volume;
             Count = settings.Count;
             CountInMarket = settings.CountInMarket;
-            IsReverceBook = settings.IsReverceBook;
+            IsReverseBook = settings.IsReverseBook;
             VolumeAccuracy = settings.VolumeAccuracy;
         }
         
         [UsedImplicitly] // used by Mapper
         public OrderBookTrader(string assetPairId, bool isEnabled, decimal initialPrice, decimal delta, 
-            decimal volume, int count, int countInMarket, bool isReverceBook, int volumeAccuracy, decimal inventory, decimal oppositeInventory) 
+            decimal volume, int count, int countInMarket, bool IsReverseBook, int volumeAccuracy, decimal inventory, decimal oppositeInventory) 
             : this(new OrderBookTraderSettings
                 {
                     AssetPairId = assetPairId,
@@ -64,7 +64,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     Count = count,
                     InitialPrice = initialPrice,
                     CountInMarket = countInMarket,
-                    IsReverceBook = isReverceBook,
+                    IsReverseBook = IsReverseBook,
                     VolumeAccuracy = volumeAccuracy
                 })
         {
@@ -114,7 +114,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             Count = settings.Count;
             Volume = settings.Volume;
             CountInMarket = settings.CountInMarket;
-            IsReverceBook = settings.IsReverceBook;
+            IsReverseBook = settings.IsReverseBook;
         }
 
         public IReadOnlyCollection<LimitOrder> GetOrders()
@@ -293,7 +293,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 
         private decimal CalculateVolume(decimal price)
         {
-            var volume = IsReverceBook ? Math.Round(Volume / price, VolumeAccuracy) : Volume;
+            var volume = IsReverseBook ? Math.Round(Volume / price, VolumeAccuracy) : Volume;
             return volume;
         }
     }

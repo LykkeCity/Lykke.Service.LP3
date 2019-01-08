@@ -29,7 +29,7 @@ namespace Lykke.Service.LP3.AzureRepositories
         private decimal _initialPrice;
         private decimal _inventory;
         private decimal _oppositeInventory;
-        private bool _isReverceBook = false;
+        private bool _IsReverseBook = false;
         private int _volumeAccuracy = 0;
 
 
@@ -73,13 +73,13 @@ namespace Lykke.Service.LP3.AzureRepositories
             }
         }
 
-        public bool IsReverceBook
+        public bool IsReverseBook
         {
-            get => _isReverceBook;
+            get => _IsReverseBook;
             set
             {
-                _isReverceBook = value;
-                MarkValueTypePropertyAsDirty(nameof(IsReverceBook));
+                _IsReverseBook = value;
+                MarkValueTypePropertyAsDirty(nameof(IsReverseBook));
             }
         }
 

@@ -1,4 +1,4 @@
-using Lykke.AzureStorage.Tables;
+﻿using Lykke.AzureStorage.Tables;
 using Lykke.AzureStorage.Tables.Entity.Annotation;
 using Lykke.AzureStorage.Tables.Entity.ValueTypesMerging;
 
@@ -29,8 +29,10 @@ namespace Lykke.Service.LP3.AzureRepositories
         private decimal _initialPrice;
         private decimal _inventory;
         private decimal _oppositeInventory;
+        private bool _isReverceBook = false;
+        private int _volumeAccuracy = 0;
 
-        
+
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -70,7 +72,27 @@ namespace Lykke.Service.LP3.AzureRepositories
                 MarkValueTypePropertyAsDirty(nameof(CountInMarket));
             }
         }
-        
+
+        public bool IsReverceBook
+        {
+            get => _isReverceBook;
+            set
+            {
+                _isReverceBook = value;
+                MarkValueTypePropertyAsDirty(nameof(IsReverceBook));
+            }
+        }
+
+        public int VolumeAccuracy
+        {
+            get => _volumeAccuracy;
+            set
+            {
+                _volumeAccuracy = value;
+                MarkValueTypePropertyAsDirty(nameof(VolumeAccuracy));
+            }
+        }
+
         public decimal Delta
         {
             get => _delta;

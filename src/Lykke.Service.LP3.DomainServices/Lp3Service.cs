@@ -112,7 +112,8 @@ namespace Lykke.Service.LP3.DomainServices
                 await _orderBookTraderService.UpdateOrderBookTraderSettingsAsync(orderBookTraderSettings);
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
                 await _limitOrderService.ClearAsync(trader.AssetPairId);
-                await ApplyOrdersAsync(trader.AssetPairId, trader.CreateOrders(), trader.CountInMarket);    
+                var orders = trader.CreateOrders();
+                await ApplyOrdersAsync(trader.AssetPairId, orders, trader.CountInMarket);    
             });
         }
 
@@ -169,7 +170,7 @@ namespace Lykke.Service.LP3.DomainServices
                     return;
                 }
 
-                trader.AddOrderManually(limitOrder);
+                limitOrder = trader.AddOrderManually(limitOrder);
                 
                 //await ApplySingleOrderAsync(limitOrder, trader.GetOrders());
                 await ApplyOrdersAsync(limitOrder.AssetPairId, trader.GetOrders(), trader.CountInMarket);
@@ -388,11 +389,15 @@ namespace Lykke.Service.LP3.DomainServices
         {
             try
             {
+                if (orders.Any(e => e.Error == LimitOrderError.OrderBookIsDisabled))
+                    return;
+
                 var assetPairInfo = _assetsService.GetAssetPairInfo(assetPairId);
                 
                 foreach (var limitOrder in orders)
                 {
                     limitOrder.Round(assetPairInfo);
+
                     limitOrder.Error = LimitOrderError.None;
                     limitOrder.ErrorMessage = string.Empty;
                 }

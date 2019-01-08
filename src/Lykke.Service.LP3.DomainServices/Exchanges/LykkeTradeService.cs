@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common;
@@ -42,7 +42,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
         private async Task SaveTrades(IReadOnlyCollection<Trade> trades)
         {
             foreach (var trade in trades)
-            {
                 try
                 {
                     await _tradeRepository.InsertAsync(trade);
@@ -51,7 +50,6 @@ namespace Lykke.Service.LP3.DomainServices.Exchanges
                 {
                     _log.Error(e, $"Error on saving trade {trade.ToJson()}");
                 }
-            }
         }
     }
 }

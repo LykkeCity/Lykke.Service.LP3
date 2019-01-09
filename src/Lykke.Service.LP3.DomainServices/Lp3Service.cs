@@ -113,7 +113,8 @@ namespace Lykke.Service.LP3.DomainServices
                 var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(orderBookTraderSettings.AssetPairId);
                 await _limitOrderService.ClearAsync(trader.AssetPairId);
                 var orders = trader.CreateOrders();
-                await ApplyOrdersAsync(trader.AssetPairId, orders, trader.CountInMarket);    
+                await ApplyOrdersAsync(trader.AssetPairId, orders, trader.CountInMarket);
+                await _limitOrderService.AddOrUpdateBatchAsync(orders);
             });
         }
 

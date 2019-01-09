@@ -260,12 +260,15 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             {
                 price = tradeType == TradeType.Sell ? AddDelta(price) : SubtractDelta(price);
 
-                decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
+                if (price > 0)
+                {
+                    decimal number = tradeType == TradeType.Sell ? i + 1 : -(i + 1);
 
-                var volume = CalculateVolume(price);
+                    var volume = CalculateVolume(price);
 
-                var order = new LimitOrder(price, volume, tradeType, AssetPairId, number);
-                orderList.Add(order);
+                    var order = new LimitOrder(price, volume, tradeType, AssetPairId, number);
+                    orderList.Add(order);
+                }
             }
 
             return orderList;

@@ -248,6 +248,9 @@ namespace Lykke.Service.LP3.DomainServices
                     await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
                     await _limitOrderService.AddOrUpdateBatchAsync(trader.GetOrders());
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
+                    var orders = trader.GetOrders();
+                    await _limitOrderService.AddOrUpdateBatchAsync(orders);
+
                 });
         }
 
@@ -265,6 +268,8 @@ namespace Lykke.Service.LP3.DomainServices
                 trader.IsEnabled = true;
                 await ApplyOrdersAsync(assetPairId, trader.GetOrders(), trader.CountInMarket);
                 await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
+                var orders = trader.GetOrders();
+                await _limitOrderService.AddOrUpdateBatchAsync(orders);
             });
         }
 

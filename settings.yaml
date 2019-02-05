@@ -22,6 +22,8 @@ LP3Service:
           - RabbitMq
         ExchangeName:
           settings-key: LP3-Rabbit-Subscribers-LykkeOrders-Exchange
+      LykkeOrdersQueueSyffix:
+        settings-key: LP3-Rabbit-Subscribers-LykkeOrdersSyffix
 
   Timers:
     BalanceTimer:

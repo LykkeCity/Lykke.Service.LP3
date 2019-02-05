@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,7 +23,7 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
         private readonly ILogFactory _logFactory;
         private readonly ILykkeTradeService _lykkeTradeService;
         private readonly ISettingsService _settingsService;
-        private readonly RabbitMqSettings _settings;
+        private readonly RabbitSubscribers _settings;
         private RabbitMqSubscriber<LimitOrders> _subscriber;
         private readonly ILog _log;
 
@@ -31,7 +31,7 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
             ILogFactory logFactory,
             ILykkeTradeService lykkeTradeService,
             ISettingsService settingsService,
-            RabbitMqSettings settings
+            RabbitSubscribers settings
             )
         {
             _logFactory = logFactory;
@@ -47,7 +47,7 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
             // about RabbitMq subscriber configuration
 
             var settings = RabbitMqSubscriptionSettings
-                .ForSubscriber(_settings.ConnectionString, _settings.ExchangeName, "lp3")
+                .ForSubscriber(_settings.LykkeOrders.ConnectionString, _settings.LykkeOrders.ExchangeName, _settings.LykkeOrdersQueueSyffix)
                 .MakeDurable();
 
             _subscriber = new RabbitMqSubscriber<LimitOrders>(

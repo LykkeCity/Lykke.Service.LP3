@@ -77,7 +77,7 @@ namespace Lykke.Service.LP3.Modules
             builder.RegisterType<LykkeLimitOrdersSubscriber>()
                 .As<IStartable>()
                 .SingleInstance()
-                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.Rabbit.Subscribers.LykkeOrders));
+                .WithParameter(TypedParameter.From(_appSettings.CurrentValue.LP3Service.Rabbit.Subscribers));
         }
     }
 }

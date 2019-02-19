@@ -76,6 +76,11 @@ namespace Lykke.Service.LP3.RabbitMq.Subscribers
                 if (string.IsNullOrEmpty(walletId))
                     return;
 
+                if (limitOrders.Orders.Any(o => o.Order?.ClientId == walletId))
+                {
+                    _log.Info("Message received", context: $"data: {limitOrders.ToJson()}");
+                }
+
                 List<LimitOrderWithTrades> clientLimitOrders = limitOrders.Orders
                     .Where(o => o.Order?.ClientId == walletId)
                     .Where(o => o.Trades?.Count > 0)

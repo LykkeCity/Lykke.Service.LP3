@@ -35,7 +35,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         public bool IsReverseBook { get; private set; }
         public int VolumeAccuracy { get; private set; }
 
-        private readonly LinkedList<LimitOrder> _orders = new LinkedList<LimitOrder>();
+        private readonly List<LimitOrder> _orders = new List<LimitOrder>();
         private bool _isEnabled;
 
         public OrderBookTrader(OrderBookTraderSettings settings)
@@ -76,8 +76,8 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         {
             _orders.Clear();
             
-            CreateOrders(InitialPrice, TradeType.Sell).ForEach(x => _orders.AddLast(x));
-            CreateOrders(InitialPrice, TradeType.Buy).ForEach(x => _orders.AddLast(x));
+            CreateOrders(InitialPrice, TradeType.Sell).ForEach(x => _orders.Add(x));
+            CreateOrders(InitialPrice, TradeType.Buy).ForEach(x => _orders.Add(x));
             
             MarkOrdersIfDisabled(_orders);
 
@@ -129,7 +129,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
             if (!string.Equals(limitOrder.AssetPairId, AssetPairId, StringComparison.InvariantCultureIgnoreCase))
                 throw new ArgumentException("LimitOrder is for another AssetPair");
             
-            _orders.AddLast(limitOrder);
+            _orders.Add(limitOrder);
             
             MarkOrdersIfDisabled(_orders);
 
@@ -152,7 +152,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         {
             _orders.Clear();
             
-            limitOrders.ForEach(x => _orders.AddLast(x));
+            limitOrders.ForEach(x => _orders.Add(x));
         }
 
         private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
@@ -162,13 +162,13 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
 
             return SpreadVolumeOnOrders(
                 trade.Type == TradeType.Sell
-                    ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price)
-                    : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price), 
+                    ? _orders.Where(x => x.TradeType == TradeType.Sell).OrderBy(x => x.Price).ToArray()
+                    : _orders.Where(x => x.TradeType == TradeType.Buy).OrderByDescending(x => x.Price).ToArray(), 
                 trade.Volume, trade.Price, minVolume);
         }
         
         private (IReadOnlyCollection<LimitOrder> addedOrders, IReadOnlyCollection<LimitOrder> removedOrders) 
-            SpreadVolumeOnOrders(IOrderedEnumerable<LimitOrder> orders, decimal volume, decimal tradePrice, decimal minVolume)
+            SpreadVolumeOnOrders(LimitOrder[] orders, decimal volume, decimal tradePrice, decimal minVolume)
         {
             var addedOrders = new List<LimitOrder>();
             var removedOrders = new List<LimitOrder>();
@@ -181,7 +181,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     removedOrders.Add(limitOrder);
                     
                     var newOrder = CreateOppositeOrder(limitOrder);
-                    _orders.AddLast(newOrder);
+                    _orders.Add(newOrder);
                     addedOrders.Add(newOrder);
                     
                     if (limitOrder.TradeType == TradeType.Sell)

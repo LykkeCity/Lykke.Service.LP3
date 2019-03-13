@@ -53,37 +53,29 @@ namespace Lykke.Service.LP3.DomainServices
             SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();
         }
 
-        public async Task ApplyOrderBooksAsync()
+        public Task ApplyOrderBooksAsync()
         {
-            foreach (string assetPair in _orderBooks.Keys)
+            return SynchronizeAsync(async () =>
             {
-                if (_orderBooks.TryRemove(assetPair, out IReadOnlyCollection<LimitOrder> limitOrders))
+                foreach (string assetPair in _orderBooks.Keys.ToList())
                 {
-                    try
+                    if (_orderBooks.TryGetValue(assetPair, out IReadOnlyCollection<LimitOrder> limitOrders))
                     {
-                        await _lykkeExchange.ApplyAsync(assetPair, limitOrders);
-                    }
-                    catch (Exception exception)
-                    {
-                        _log.Warning("An error occurred while applying order book", exception, assetPair);
-                    }
+                        try
+                        {
+                            await _lykkeExchange.ApplyAsync(assetPair, limitOrders);
 
-                    decimal? ask = limitOrders.OrderBy(o => o.Price).FirstOrDefault()?.Price;
-                    decimal? bid = limitOrders.OrderByDescending(o => o.Price).FirstOrDefault()?.Price;
+                            _orderBooks.TryRemove(assetPair, out _);
+                        }
+                        catch (Exception exception)
+                        {
+                            _log.Error(exception, "An error occurred while applying order book", assetPair);
+                        }
 
-                    var context = new
-                    {
-                        AssetPair = assetPair,
-                        Ask = ask,
-                        Bid = bid,
-                        Mid = ask.HasValue && bid.HasValue
-                            ? (ask + bid) / 2
-                            : ask ?? bid
-                    };
-                    
-                    _log.Info("Order book applied", context: $"data: {context}");
+                        LogPrice(assetPair, limitOrders, "Order book applied");
+                    }
                 }
-            }
+            });
         }
 
         public async Task HandleTradesAsync(IReadOnlyCollection<Trade> trades)
@@ -92,7 +84,8 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 try
                 {
-                    if (!trades.Any()) return;
+                    if (!trades.Any())
+                        return;
 
                     _log.Info("Trades received", context: $"trades: [{string.Join(", ", trades.Select(x => x.ToJson()))}]");
 
@@ -105,7 +98,14 @@ namespace Lykke.Service.LP3.DomainServices
                         _log.Error($"No trader for {assetPairId}");
                         return;
                     }
-                    
+
+                    decimal volume = trades.Sum(o=>o.Volume * (o.Type == TradeType.Sell ? -1 : 1));
+                    decimal oppositeVolume =
+                        trades.Sum(o => o.OppositeSideVolume * (o.Type == TradeType.Sell ? 1 : -1));
+
+                    _log.Info("Received volume",
+                        new {AssetPairId = assetPairId, Volume = volume, OppositeVolume = oppositeVolume});
+
                     var (addedOrders, removedOrders) = trader.HandleTrades(trades, assetPairInfo.MinVolume);
 
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
@@ -447,6 +447,8 @@ namespace Lykke.Service.LP3.DomainServices
                     var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
 
                     _orderBooks.AddOrUpdate(assetPairId, ordersToPlace, (key, value) => ordersToPlace);
+                    
+                    LogPrice(assetPairId, ordersToPlace, "Order book calculated");
                 }
                 catch (Exception e)
                 {
@@ -534,6 +536,24 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 _log.Error(e, "Can't validate balances for buy orders", $"assetPairInfo: {assetPairInfo.ToJson()}");
             }
+        }
+
+        private void LogPrice(string assetPair, IReadOnlyCollection<LimitOrder> limitOrders, string message)
+        {
+            decimal? ask = limitOrders.OrderBy(o => o.Price).FirstOrDefault()?.Price;
+            decimal? bid = limitOrders.OrderByDescending(o => o.Price).FirstOrDefault()?.Price;
+
+            var context = new
+            {
+                AssetPair = assetPair,
+                Ask = ask,
+                Bid = bid,
+                Mid = ask.HasValue && bid.HasValue
+                    ? (ask + bid) / 2
+                    : ask ?? bid
+            };
+                    
+            _log.Info(message, context: $"data: {context}");
         }
     }
 }

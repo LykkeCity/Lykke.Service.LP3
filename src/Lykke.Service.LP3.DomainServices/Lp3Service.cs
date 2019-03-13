@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -29,8 +30,8 @@ namespace Lykke.Service.LP3.DomainServices
         
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        private readonly Timer _retryTimer;
-        private readonly List<string> _retryNeededForTraders = new List<string>();
+        private readonly ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>> _orderBooks =
+            new ConcurrentDictionary<string, IReadOnlyCollection<LimitOrder>>();
 
         public Lp3Service(ILogFactory logFactory,
             IOrderBookTraderService orderBookTraderService,
@@ -45,16 +46,46 @@ namespace Lykke.Service.LP3.DomainServices
             _assetsService = assetsService;
             _balanceService = balanceService;
             _log = logFactory.CreateLog(this);
-            
-            _retryTimer = new Timer(Retry, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
         
-
         public void Start()
         {
             SynchronizeAsync(async () => await StartAsync()).GetAwaiter().GetResult();
         }
-        
+
+        public async Task ApplyOrderBooksAsync()
+        {
+            foreach (string assetPair in _orderBooks.Keys)
+            {
+                if (_orderBooks.TryRemove(assetPair, out IReadOnlyCollection<LimitOrder> limitOrders))
+                {
+                    try
+                    {
+                        await _lykkeExchange.ApplyAsync(assetPair, limitOrders);
+                    }
+                    catch (Exception exception)
+                    {
+                        _log.Warning("An error occurred while applying order book", exception, assetPair);
+                    }
+
+                    decimal? ask = limitOrders.OrderBy(o => o.Price).FirstOrDefault()?.Price;
+                    decimal? bid = limitOrders.OrderByDescending(o => o.Price).FirstOrDefault()?.Price;
+
+                    var context = new
+                    {
+                        AssetPair = assetPair,
+                        Ask = ask,
+                        Bid = bid,
+                        Mid = ask.HasValue && bid.HasValue
+                            ? (ask + bid) / 2
+                            : ask ?? bid
+                    };
+                    
+                    _log.Info("Order book applied", context: $"data: {context}");
+                }
+            }
+        }
+
         public async Task HandleTradesAsync(IReadOnlyCollection<Trade> trades)
         {
             await SynchronizeAsync(async () =>
@@ -134,6 +165,7 @@ namespace Lykke.Service.LP3.DomainServices
         {
             await SynchronizeAsync(async () =>
                 {
+                    _orderBooks.TryRemove(assetPairId, out _);
                     await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
                     await _orderBookTraderService.DeleteOrderBookAsync(assetPairId);
                     await _limitOrderService.ClearAsync(assetPairId);
@@ -199,6 +231,7 @@ namespace Lykke.Service.LP3.DomainServices
             await SynchronizeAsync(async () =>
             {
                 (await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId))?.Clear();
+                _orderBooks.TryRemove(assetPairId, out _);
                 await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
                 await _limitOrderService.ClearAsync(assetPairId);
             });
@@ -245,6 +278,7 @@ namespace Lykke.Service.LP3.DomainServices
                     }
 
                     trader.IsEnabled = false;
+                    _orderBooks.TryRemove(assetPairId, out _);
                     await _lykkeExchange.ApplyAsync(assetPairId, Array.Empty<LimitOrder>());
                     await _limitOrderService.AddOrUpdateBatchAsync(trader.GetOrders());
                     await _orderBookTraderService.PersistOrderBookTraderAsync(trader);
@@ -276,23 +310,6 @@ namespace Lykke.Service.LP3.DomainServices
         public void Dispose()
         {
             _semaphore?.Dispose();
-            _retryTimer?.Dispose();
-        }
-
-        private void Retry(object state)
-        {
-            SynchronizeAsync(async () =>
-            {
-                if (!_retryNeededForTraders.Any())
-                    return;
-
-                var assetPairId = _retryNeededForTraders.First();
-                
-                _log.Info($"Retrying placing order for {assetPairId}");
-
-                var trader = await _orderBookTraderService.GetTraderByAssetPairIdAsync(assetPairId);
-                if (trader != null) await ApplyOrdersAsync(trader.AssetPairId, trader.GetOrders(), trader.CountInMarket);
-            }).GetAwaiter().GetResult();
         }
 
         private async Task StartAsync()
@@ -414,8 +431,6 @@ namespace Lykke.Service.LP3.DomainServices
                     context: $"assetPair: {assetPairId}," +
                              $"orders: [{string.Join(", ", orders.Select(x => x.ToJson()))}]");
                 
-                var success = false;
-                
                 try
                 {
                     orders.Where(e => e.TradeType == TradeType.Buy).OrderByDescending(e => e.Price).Skip(countInMarket).ForEach(e =>
@@ -431,45 +446,17 @@ namespace Lykke.Service.LP3.DomainServices
                     
                     var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
 
-
-                    LogNewOrderBookState(assetPairId, ordersToPlace);
-                    
-                    await _lykkeExchange.ApplyAsync(assetPairId, ordersToPlace);
-                    
-                    if (ordersToPlace.All(x => x.Error == LimitOrderError.None))
-                    {
-                        _retryNeededForTraders.Remove(assetPairId);
-                        success = true;    
-                    }
+                    _orderBooks.AddOrUpdate(assetPairId, ordersToPlace, (key, value) => ordersToPlace);
                 }
                 catch (Exception e)
                 {
                     _log.Error(e, $"Error on placing orders for {assetPairId}");
                 }
-
-                if (!success)
-                    if (!_retryNeededForTraders.Contains(assetPairId)) _retryNeededForTraders.Add(assetPairId);
-
-                if (_retryNeededForTraders.Any()) _retryTimer.Change(Consts.RetryPlacingOrdersPeriod, Timeout.InfiniteTimeSpan);
             }
             catch (Exception e)
             {
                 _log.Error(e);
             }
-        }
-
-        private void LogNewOrderBookState(string assetPairId, List<LimitOrder> ordersToPlace)
-        {
-            var askOrder = ordersToPlace.Where(e => e.TradeType == TradeType.Sell).OrderBy(e => e.Price).FirstOrDefault();
-            var bidOrder = ordersToPlace.Where(e => e.TradeType == TradeType.Buy).OrderBy(e => e.Price).FirstOrDefault();
-
-            decimal? mid = 0;
-
-            if (askOrder != null && bidOrder != null)
-            {
-                todo!
-            }
-
         }
 
         private async Task ValidateBalanceForSingleOrderAsync(LimitOrder order,

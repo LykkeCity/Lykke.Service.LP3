@@ -17,7 +17,7 @@ namespace Lykke.Service.LP3.DomainServices
         private readonly TimerSettings _timerSettings;
 
         public AutofacModule(
-            string walletId, 
+            string walletId,
             IReadOnlyCollection<AssetMapping> assetMappings,
             TimerSettings timerSettings)
         {
@@ -55,7 +55,7 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<LimitOrderService>()
                 .As<ILimitOrderService>()
                 .SingleInstance();
-            
+
             builder.RegisterType<LykkeAssetsService>()
                 .As<IAssetsService>()
                 .SingleInstance();
@@ -79,6 +79,10 @@ namespace Lykke.Service.LP3.DomainServices
             builder.RegisterType<BalancesTimer>()
                 .AsSelf()
                 .WithParameter(TypedParameter.From(_timerSettings.BalanceTimer));
+
+            builder.RegisterType<LiquidityProviderTimer>()
+                .AsSelf()
+                .WithParameter(TypedParameter.From(_timerSettings.LiquidityProvider));
         }
     }
 }

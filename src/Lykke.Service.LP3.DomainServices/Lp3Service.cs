@@ -430,6 +430,9 @@ namespace Lykke.Service.LP3.DomainServices
                     });
                     
                     var ordersToPlace = orders.Where(x => x.Error == LimitOrderError.None).ToList();
+
+
+                    LogNewOrderBookState(assetPairId, ordersToPlace);
                     
                     await _lykkeExchange.ApplyAsync(assetPairId, ordersToPlace);
                     
@@ -453,6 +456,20 @@ namespace Lykke.Service.LP3.DomainServices
             {
                 _log.Error(e);
             }
+        }
+
+        private void LogNewOrderBookState(string assetPairId, List<LimitOrder> ordersToPlace)
+        {
+            var askOrder = ordersToPlace.Where(e => e.TradeType == TradeType.Sell).OrderBy(e => e.Price).FirstOrDefault();
+            var bidOrder = ordersToPlace.Where(e => e.TradeType == TradeType.Buy).OrderBy(e => e.Price).FirstOrDefault();
+
+            decimal? mid = 0;
+
+            if (askOrder != null && bidOrder != null)
+            {
+                todo!
+            }
+
         }
 
         private async Task ValidateBalanceForSingleOrderAsync(LimitOrder order,

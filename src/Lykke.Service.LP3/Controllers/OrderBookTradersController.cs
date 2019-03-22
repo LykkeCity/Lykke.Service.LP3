@@ -111,6 +111,21 @@ namespace Lykke.Service.LP3.Controllers
         [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest)]
         public async Task DeleteOrderBookTraderAsync([FromRoute] string assetPairId)
         {
+            var existingSettings = await _orderBookTraderService.GetOrderBookTradersAsync();
+
+            var traderSettings = existingSettings.FirstOrDefault(x =>
+                string.Equals(x.AssetPairId, assetPairId, StringComparison.InvariantCultureIgnoreCase));
+            
+            if (traderSettings == null)
+            {
+                throw new ValidationApiException($"OrderBookTrader for asset pair {assetPairId} doesn't exists.");
+            }
+            
+            if (traderSettings.IsEnabled)
+            {
+                throw new ValidationApiException($"OrderBookTrader for asset pair {assetPairId} is enabled and cannot be deleted.");
+            }
+            
             await _lp3Service.DeleteOrderBookAsync(assetPairId);
         }
     }

@@ -234,11 +234,7 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
         {
             if (!IsEnabled)
             {
-                orders.ForEach(x =>
-                {
-                    x.Error = LimitOrderError.OrderBookIsDisabled;
-                    x.ErrorMessage = "Order book is disabled";
-                });
+                orders.ForEach(MarkOrderDisabled);
             }
             else
             {
@@ -248,6 +244,12 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                     x.ErrorMessage = null;
                 });
             }
+        }
+
+        private static void MarkOrderDisabled(LimitOrder order)
+        {
+            order.Error = LimitOrderError.OrderBookIsDisabled;
+            order.ErrorMessage = "Order book is disabled";
         }
 
         private IEnumerable<LimitOrder> CreateOrders(decimal initialPrice, TradeType tradeType)
@@ -290,6 +292,9 @@ namespace Lykke.Service.LP3.Domain.TradingAlgorithm
                 var volume = CalculateVolume(price);
                 order = new LimitOrder(price, volume, TradeType.Sell, AssetPairId, executedOrder.Number + 1);
             }
+            
+            if(executedOrder.Error == LimitOrderError.OrderBookIsDisabled)
+                MarkOrderDisabled(order);
 
             return order;
         }

@@ -16,19 +16,23 @@ namespace Lykke.Service.LP3.Services
     public class StartupManager : IStartupManager
     {
         private readonly BalancesTimer _balancesTimer;
+        private readonly LiquidityProviderTimer _liquidityProviderTimer;
         private readonly ILog _log;
 
         public StartupManager(
             BalancesTimer balancesTimer,
+            LiquidityProviderTimer liquidityProviderTimer,
             ILogFactory logFactory)
         {
             _balancesTimer = balancesTimer;
+            _liquidityProviderTimer = liquidityProviderTimer;
             _log = logFactory.CreateLog(this);
         }
 
         public async Task StartAsync()
         {
             _balancesTimer.Start();
+            _liquidityProviderTimer.Start();
 
             await Task.CompletedTask;
         }

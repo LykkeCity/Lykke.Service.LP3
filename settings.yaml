@@ -29,6 +29,9 @@ LP3Service:
     BalanceTimer:
       settings-key: LP3-Timers-BalanceTimer
 
+    LiquidityProvider:
+      settings-key: LP3-Timers-LiquidityProvider
+
   AssetMappings:
     settings-key: LP3-AssetMappings
     types:

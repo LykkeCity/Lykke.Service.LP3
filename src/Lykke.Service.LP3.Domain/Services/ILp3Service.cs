@@ -8,6 +8,8 @@ namespace Lykke.Service.LP3.Domain.Services
 {
     public interface ILp3Service
     {
+        Task ApplyOrderBooksAsync();
+        
         Task HandleTradesAsync(IReadOnlyCollection<Trade> trades);
         
         Task<IReadOnlyCollection<LimitOrder>> GetAllOrdersAsync();

@@ -16,15 +16,18 @@ namespace Lykke.Service.LP3.Services
     public class ShutdownManager : IShutdownManager
     {
         private readonly BalancesTimer _balancesTimer;
+        private readonly LiquidityProviderTimer _liquidityProviderTimer;
         private readonly ILog _log;
         private readonly IEnumerable<IStopable> _items;
 
         public ShutdownManager(
             BalancesTimer balancesTimer,
+            LiquidityProviderTimer liquidityProviderTimer,
             ILogFactory logFactory,
             IEnumerable<IStopable> items)
         {
             _balancesTimer = balancesTimer;
+            _liquidityProviderTimer = liquidityProviderTimer;
             _log = logFactory.CreateLog(this);
             _items = items;
         }
@@ -32,6 +35,7 @@ namespace Lykke.Service.LP3.Services
         public async Task StopAsync()
         {
             _balancesTimer.Stop();
+            _liquidityProviderTimer.Stop();
 
             foreach (var item in _items)
             {
